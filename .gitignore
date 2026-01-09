@@ -7,11 +7,12 @@ __pycache__/
 *.py[cod]
 
 # Credentials and Environment
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# .env files are now tracked as requested by the user for this private repository
+#.env
+#.env.local
+#.env.development.local
+#.env.test.local
+#.env.production.local
 
 # IDEs and Editors
 .vscode/
