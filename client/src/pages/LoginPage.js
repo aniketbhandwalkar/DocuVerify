@@ -1,5 +1,3 @@
-// Login Page – Styled to match animated LandingPage
-
 import React, { useState, useContext } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -25,10 +23,10 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await login(formData.email, formData.password);
-      setSuccess('Login successful! Redirecting to dashboard...');
+      setSuccess('Login successful!');
       setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed.');
     } finally {
       setLoading(false);
     }
@@ -54,8 +52,8 @@ const LoginPage = () => {
           Sign in to your DocuVerify account
         </motion.p>
 
-        {error && <div className="text-red-400 text-sm mb-4 p-3 bg-red-400/10 border border-red-400/30 rounded-lg">⚠️ {error}</div>}
-        {success && <div className="text-green-400 text-sm mb-4 p-3 bg-green-400/10 border border-green-400/30 rounded-lg">✅ {success}</div>}
+        {error && <div className="text-red-400 text-sm mb-4 p-3 bg-red-400/10 border border-red-400/30 rounded-lg">{error}</div>}
+        {success && <div className="text-green-400 text-sm mb-4 p-3 bg-green-400/10 border border-green-400/30 rounded-lg">{success}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -65,8 +63,8 @@ const LoginPage = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="mt-1 w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your email"
+              className="mt-1 w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter email"
               required
             />
           </div>
@@ -78,8 +76,8 @@ const LoginPage = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="mt-1 w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Enter your password"
+              className="mt-1 w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Enter password"
               required
             />
           </div>
@@ -94,16 +92,11 @@ const LoginPage = () => {
         </form>
 
         <p className="text-sm text-center mt-6 text-gray-400">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-blue-400 hover:underline">
-            Create one
-          </Link>
+          No account? <Link to="/register" className="text-blue-400 hover:underline">Create one</Link>
         </p>
 
         <div className="text-center mt-2">
-          <Link to="/" className="text-xs text-gray-500 hover:text-white">
-            ← Back to Home
-          </Link>
+          <Link to="/" className="text-xs text-gray-500 hover:text-white">← Back</Link>
         </div>
       </div>
     </div>

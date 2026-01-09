@@ -17,7 +17,7 @@ const ResetPasswordPage = () => {
   useEffect(() => {
     const resetToken = searchParams.get('token');
     if (!resetToken) {
-      setError('Invalid reset link. Please request a new password reset.');
+      setError('Invalid reset link.');
       return;
     }
     setToken(resetToken);
@@ -29,7 +29,6 @@ const ResetPasswordPage = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (error) setError('');
   };
 
@@ -39,7 +38,7 @@ const ResetPasswordPage = () => {
       return false;
     }
     if (formData.newPassword.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setError('Password must be at least 6 characters.');
       return false;
     }
     if (formData.newPassword !== formData.confirmPassword) {
@@ -51,10 +50,9 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
     if (!token) {
-      setError('Invalid reset token. Please request a new password reset.');
+      setError('Invalid token.');
       return;
     }
 
@@ -63,18 +61,14 @@ const ResetPasswordPage = () => {
 
     try {
       const response = await authService.resetPassword(token, formData.newPassword);
-      
       if (response.success) {
-        setSuccess('Password reset successful! Redirecting to login...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
+        setSuccess('Password reset successful!');
+        setTimeout(() => navigate('/login'), 2000);
       } else {
-        setError(response.message || 'Failed to reset password. Please try again.');
+        setError(response.message || 'Reset failed.');
       }
     } catch (err) {
-      console.error('Reset password error:', err);
-      setError('An error occurred. Please try again.');
+      setError('An error occurred.');
     } finally {
       setLoading(false);
     }
@@ -83,19 +77,12 @@ const ResetPasswordPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
       <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-      
-      {/* Background decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-40 left-20 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-      </div>
 
       <div className="relative z-10 max-w-md w-full mx-4">
         <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white border-opacity-20">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Reset Password</h1>
-            <p className="text-gray-300">Enter your new password below</p>
+            <p className="text-gray-300">Enter new password</p>
           </div>
 
           {error && (
@@ -112,7 +99,7 @@ const ResetPasswordPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="newPassword" class="block text-sm font-medium text-gray-300 mb-2">
                 New Password
               </label>
               <input
@@ -121,15 +108,14 @@ const ResetPasswordPage = () => {
                 name="newPassword"
                 value={formData.newPassword}
                 onChange={handleInputChange}
-                placeholder="Enter new password"
-                className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
+                className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
                 disabled={loading}
               />
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm New Password
+              <label htmlFor="confirmPassword" class="block text-sm font-medium text-gray-300 mb-2">
+                Confirm
               </label>
               <input
                 type="password"
@@ -137,8 +123,7 @@ const ResetPasswordPage = () => {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                placeholder="Confirm new password"
-                className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
+                className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
                 disabled={loading}
               />
             </div>
@@ -146,23 +131,12 @@ const ResetPasswordPage = () => {
             <button
               type="submit"
               disabled={loading || !token}
-              className={`w-full py-3 px-6 rounded-xl font-semibold text-white transition-all duration-200 ${
-                loading || !token
+              className={`w-full py-3 px-6 rounded-xl font-semibold text-white transition-all ${loading || !token
                   ? 'bg-gray-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 active:scale-95'
-              } shadow-lg`}
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg'
+                }`}
             >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Resetting Password...
-                </div>
-              ) : (
-                'Reset Password'
-              )}
+              {loading ? 'Resetting...' : 'Reset Password'}
             </button>
           </form>
 
@@ -171,7 +145,7 @@ const ResetPasswordPage = () => {
               onClick={() => navigate('/login')}
               className="text-blue-300 hover:text-blue-200 text-sm font-medium transition-colors"
             >
-              ← Back to Login
+              Back to Login
             </button>
           </div>
         </div>

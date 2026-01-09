@@ -3,11 +3,26 @@ import cv2
 import numpy as np
 from PIL import Image
 import io
-import pytesseract
+import easyocr
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Initialize EasyOCR reader (lazy initialization)
+_ocr_reader = None
+
+def get_ocr_reader():
+    """Get or initialize EasyOCR reader"""
+    global _ocr_reader
+    if _ocr_reader is None:
+        try:
+            _ocr_reader = easyocr.Reader(['en', 'hi'])
+            logger.info("EasyOCR reader initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize EasyOCR: {e}")
+            raise
+    return _ocr_reader
 
 @router.post("/ocr")
 async def perform_ocr_analysis(file: UploadFile = File(...)):
@@ -43,7 +58,7 @@ async def perform_ocr_analysis(file: UploadFile = File(...)):
 
 def extract_text_with_confidence(image):
     """
-    Extract text from image with confidence scores
+    Extract text from image with confidence scores using EasyOCR
     """
     try:
         # Convert PIL to numpy array
@@ -52,48 +67,37 @@ def extract_text_with_confidence(image):
         # Preprocess image for better OCR results
         preprocessed = preprocess_image_for_ocr(img_array)
         
-        # Perform OCR with detailed output
-        data = pytesseract.image_to_data(
-            preprocessed, 
-            output_type=pytesseract.Output.DICT,
-            config='--psm 6'  # Assume uniform block of text
-        )
+        # Get EasyOCR reader
+        reader = get_ocr_reader()
+        
+        # Perform OCR with EasyOCR (returns list of [bbox, text, confidence])
+        results = reader.readtext(preprocessed)
         
         # Extract text and confidence
         text_parts = []
         confidences = []
         regions = []
         
-        for i in range(len(data['text'])):
-            text = data['text'][i].strip()
-            conf = data['conf'][i]
-            
-            if text and conf > 0:
+        for (bbox, text, confidence) in results:
+            if text.strip() and confidence > 0:
                 text_parts.append(text)
-                confidences.append(conf)
+                confidences.append(confidence)
                 
-                # Store region information
+                # Convert bbox to standard format
+                bbox_list = [list(point) for point in bbox]
                 regions.append({
                     "text": text,
-                    "confidence": conf,
-                    "bbox": {
-                        "x": data['left'][i],
-                        "y": data['top'][i],
-                        "width": data['width'][i],
-                        "height": data['height'][i]
-                    }
+                    "confidence": round(confidence, 4),
+                    "bbox": bbox_list
                 })
         
         full_text = ' '.join(text_parts)
-        avg_confidence = np.mean(confidences) / 100.0 if confidences else 0.0
-        
-        # Detect languages (simplified)
-        languages = detect_languages(full_text)
+        avg_confidence = np.mean(confidences) if confidences else 0.0
         
         return {
             "text": full_text,
-            "confidence": avg_confidence,
-            "languages": languages,
+            "confidence": round(avg_confidence, 4),
+            "languages": ["en", "hi"],  # EasyOCR supports both
             "regions": regions
         }
         
@@ -111,8 +115,11 @@ def preprocess_image_for_ocr(image):
     Preprocess image to improve OCR accuracy
     """
     try:
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        # Convert to grayscale if needed
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        else:
+            gray = image
         
         # Noise removal
         denoised = cv2.medianBlur(gray, 3)
@@ -129,27 +136,3 @@ def preprocess_image_for_ocr(image):
     except Exception as e:
         logger.error(f"Image preprocessing error: {str(e)}")
         return image
-
-def detect_languages(text):
-    """
-    Detect languages in the text (simplified implementation)
-    """
-    try:
-        # This is a simplified language detection
-        # In production, you might want to use langdetect or similar libraries
-        
-        languages = []
-        
-        # Check for English
-        if any(char.isalpha() and ord(char) < 128 for char in text):
-            languages.append("en")
-        
-        # Check for numbers
-        if any(char.isdigit() for char in text):
-            languages.append("numeric")
-        
-        return languages if languages else ["unknown"]
-        
-    except Exception as e:
-        logger.error(f"Language detection error: {str(e)}")
-        return ["unknown"]

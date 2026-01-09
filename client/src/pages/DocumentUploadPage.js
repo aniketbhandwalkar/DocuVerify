@@ -7,16 +7,10 @@ import { motion } from 'framer-motion';
 const DocumentUploadPage = () => {
   const navigate = useNavigate(); // ✅ Required for redirection
 
-  const handleUpload = async (formData) => {
-    try {
-      const response = await uploadDocument(formData);
-      console.log('Document uploaded:', response.data);
-
-      // ✅ Redirect to dashboard with refresh trigger
-      navigate('/dashboard', { state: { fromUpload: true } });
-    } catch (error) {
-      console.error('Error uploading document:', error);
-    }
+  const handleUpload = (docData) => {
+    // Upload is handled inside UploadForm.js
+    console.log('Document upload success:', docData);
+    // Navigation is also handled by UploadForm after simulation
   };
 
   return (

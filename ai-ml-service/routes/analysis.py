@@ -8,6 +8,11 @@ import cv2
 import numpy as np
 import pytesseract
 import logging
+import platform
+
+# Configure Tesseract path for Windows
+if platform.system() == 'Windows':
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 import sys
 from utils.json_utils import to_serializable
 
@@ -18,16 +23,10 @@ try:
     from utils.ml_pipeline import ml_verifier
     safe_ml_verifier = ml_verifier
     USE_ADVANCED_ML = True
-except ImportError:
-    try:
-        from utils.simple_verifier import simple_verifier
-        USE_ADVANCED_ML = False
-        print("Using simplified verifier due to missing ML libraries")
-    except ImportError:
-        safe_ml_verifier = None
-        simple_verifier = None
-        USE_ADVANCED_ML = False
-        print("No ML verifier available. Please check your installation.")
+except ImportError as e:
+    safe_ml_verifier = None
+    USE_ADVANCED_ML = False
+    print(f"ML verifier not available: {e}. Using legacy analysis only.")
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -70,16 +69,18 @@ async def analyze_document(
             
             logger.info(f"Advanced ML Analysis - Features: {len(features)}, Confidence: {classification_result.get('confidence', 0)}")
         else:
-            # Use simplified verifier
-            features = simple_verifier.extract_comprehensive_features(file_location, document_type)
+            # Fallback to legacy analysis only (no ML features)
+            features = {}
+            classification_result = {
+                'is_authentic': True,  # Default, will be overridden by legacy analysis
+                'confidence': 0.5,
+                'raw_score': 0.5,
+                'risk_factors': [],
+                'authenticity_indicators': [],
+                'detailed_analysis': 'Using legacy analysis (ML not available)'
+            }
             
-            if 'error' in features:
-                raise HTTPException(status_code=500, detail=f"Feature extraction failed: {features['error']}")
-            
-            # Classify document using rule-based approach
-            classification_result = simple_verifier.classify_document(features)
-            
-            logger.info(f"Simplified Analysis - Features: {len(features)}, Confidence: {classification_result.get('confidence', 0)}")
+            logger.info("Using legacy analysis - ML verifier not available")
         
         # Perform legacy analysis for compatibility
         legacy_analysis = perform_legacy_analysis(file_location, document_type)
@@ -108,7 +109,7 @@ async def analyze_document(
             "quality_score": final_result["quality_score"],
             "ml_analysis": classification_result,
             "feature_count": len(features),
-            "ml_method": "advanced_ensemble" if USE_ADVANCED_ML else "simplified",
+            "ml_method": "advanced_ensemble" if USE_ADVANCED_ML else "legacy",
             "risk_factors": classification_result.get('risk_factors', []),
             "authenticity_indicators": classification_result.get('authenticity_indicators', []),
             "detailed_analysis": classification_result.get('detailed_analysis', ''),
@@ -206,6 +207,27 @@ def combine_enhanced_analysis_results(features, classification_result, legacy_an
         
         if features.get('face_quality_mean', 0) < 0.3:
             anomalies.append("Poor face image quality")
+            
+        # --- AADHAAR SPECIFIC LOGIC ---
+        # Only override if we actually performed the check
+        if 'aadhaar_cross_verify' in features:
+            cross_verify = features['aadhaar_cross_verify']
+            
+            if cross_verify.get('verified', False):
+                 # Strong positive signal
+                 combined_confidence = max(combined_confidence, 0.95)
+                 # Force valid if everything else isn't catastrophic
+                 if combined_confidence > 0.6:
+                     is_valid = True
+                 logger.info("Aadhaar Cross-Verification Passed: Boosting confidence")
+            else:
+                 # Verification attempted but failed
+                 combined_confidence = min(combined_confidence, 0.4)
+                 is_valid = False
+                 mismatches = cross_verify.get('mismatches', [])
+                 anomalies.append(f"Aadhaar Verification FAILED: mismatch in {', '.join(mismatches)}")
+                 logger.warning("Aadhaar Cross-Verification Failed")
+        # ------------------------------
         
         # Add penalty analysis
         penalty_analysis = classification_result.get('penalty_analysis', {})

@@ -5,8 +5,11 @@ const path = require('path');
 
 class OCRService {
   constructor() {
-    // OCR.space API configuration
-    this.apiKey = 'K89884034088957'; // Your provided API key
+    // OCR.space API configuration - use environment variable for API key
+    const dotenv = require('dotenv');
+    dotenv.config();
+    
+    this.apiKey = process.env.OCR_SPACE_API_KEY || 'K87898142388957'; // Fallback free tier key
     this.baseUrl = 'https://api.ocr.space/parse/image';
     this.defaultOptions = {
       language: 'eng',
@@ -18,6 +21,10 @@ class OCRService {
       isCreateSearchablePdf: false,
       isSearchablePdfHideTextLayer: false
     };
+    
+    if (!process.env.OCR_SPACE_API_KEY) {
+      console.warn('[OCRService] Warning: OCR_SPACE_API_KEY not set in environment. Using free tier (rate limited)');
+    }
   }
 
   /**

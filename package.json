@@ -14,7 +14,7 @@
     "start:client": "cd client && npm start",
     "start:server": "cd server && npm start",
     "start:ai-ml": "cd ai-ml-service && uvicorn app:app --host 0.0.0.0 --port 8000",
-    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install && cd ../ai-ml-service && pip install -r requirements.txt",
     "railway:build": "npm run install:all && npm run build:client",
     "railway:start": "npm start"
   },

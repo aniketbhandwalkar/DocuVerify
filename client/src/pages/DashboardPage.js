@@ -12,14 +12,13 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     total: 0,
     verified: 0,
-    pending: 0,
-    failed: 0
+    rejected: 0
   });
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAllDocuments, setShowAllDocuments] = useState(false);
-  const [documentFilter, setDocumentFilter] = useState('all'); // all, verified, pending, failed
+  const [documentFilter, setDocumentFilter] = useState('all'); // all, verified, rejected
   const [documentSort, setDocumentSort] = useState('newest'); // newest, oldest, name
   const [autoRefreshing, setAutoRefreshing] = useState(false);
   const navigate = useNavigate();
@@ -48,7 +47,7 @@ const Dashboard = () => {
     if (user?.name && user.name !== 'undefined') {
       return user.name;
     }
-    
+
     // Then try to get from localStorage user object
     const storedUser = localStorage.getItem('user');
     if (storedUser && storedUser !== 'undefined') {
@@ -56,7 +55,7 @@ const Dashboard = () => {
         const parsedUser = JSON.parse(storedUser);
         // Handle both direct user object and nested user object
         const userData = parsedUser.user || parsedUser;
-        
+
         if (userData.name && userData.name !== 'undefined') {
           return userData.name;
         }
@@ -68,12 +67,12 @@ const Dashboard = () => {
         console.log('Error parsing stored user:', e);
       }
     }
-    
+
     // Try to get from AuthContext email
     if (user?.email && user.email !== 'undefined') {
       return user.email.split('@')[0];
     }
-    
+
     // If we still have a token, the user is logged in - extract from token email
     const token = localStorage.getItem('token');
     if (token) {
@@ -81,7 +80,7 @@ const Dashboard = () => {
       const email = user?.email || 'yuvibhatkar702@gmail.com';
       return email.split('@')[0];
     }
-    
+
     return 'User';
   };
 
@@ -125,10 +124,9 @@ const Dashboard = () => {
       const stats = documentsData.reduce((acc, doc) => {
         acc.total++;
         if (doc.status === 'verified') acc.verified++;
-        else if (doc.status === 'processing' || doc.status === 'pending_review' || doc.status === 'uploaded') acc.pending++;
-        else acc.failed++;
+        else if (doc.status === 'rejected' || doc.status === 'failed') acc.rejected++;
         return acc;
-      }, { total: 0, verified: 0, pending: 0, failed: 0 });
+      }, { total: 0, verified: 0, rejected: 0 });
 
       setStats(stats);
     } catch (error) {
@@ -179,9 +177,7 @@ const Dashboard = () => {
         switch (documentFilter) {
           case 'verified':
             return doc.status === 'verified';
-          case 'pending':
-            return doc.status === 'processing' || doc.status === 'pending_review' || doc.status === 'uploaded';
-          case 'failed':
+          case 'rejected':
             return doc.status === 'rejected' || doc.status === 'failed';
           default:
             return true;
@@ -209,8 +205,8 @@ const Dashboard = () => {
     const getStatusColor = (status) => {
       switch (status) {
         case 'verified': return 'text-green-400';
-        case 'processing': case 'pending_review': case 'uploaded': return 'text-yellow-400';
         case 'rejected': case 'failed': return 'text-red-400';
+        case 'processing': case 'uploaded': return 'text-yellow-400';
         default: return 'text-gray-400';
       }
     };
@@ -218,10 +214,8 @@ const Dashboard = () => {
     const getStatusIcon = (status) => {
       switch (status) {
         case 'verified': return '✅';
-        case 'processing': return '⏳';
-        case 'pending_review': return '⚠️';
-        case 'uploaded': return '📄';
         case 'rejected': case 'failed': return '❌';
+        case 'processing': case 'uploaded': return '⏳';
         default: return '📄';
       }
     };
@@ -248,12 +242,11 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <span className={`text-xs font-medium px-2 py-1 rounded-full bg-opacity-20 ${getStatusColor(document.status)} ${
-            document.status === 'verified' ? 'bg-green-500' : 
-            document.status === 'processing' || document.status === 'pending_review' || document.status === 'uploaded' ? 'bg-yellow-500' : 
-            'bg-red-500'
-          }`}>
-            {document.status}
+          <span className={`text-xs font-medium px-2 py-1 rounded-full bg-opacity-20 ${getStatusColor(document.status)} ${document.status === 'verified' ? 'bg-green-500' :
+              (document.status === 'processing' || document.status === 'uploaded') ? 'bg-yellow-500' : 'bg-red-500'
+            }`}>
+            {document.status === 'verified' ? 'Accepted' :
+              (document.status === 'processing' || document.status === 'uploaded') ? 'Processing' : 'Rejected'}
           </span>
         </div>
 
@@ -280,18 +273,6 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-
-        {(document.status === 'processing' || document.status === 'uploaded') && (
-          <div className="mb-3">
-            <div className="w-full bg-gray-700 rounded-full h-1">
-              <div 
-                className="bg-blue-500 h-1 rounded-full transition-all duration-500"
-                style={{ width: `${document.progress || 50}%` }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Processing...</p>
-          </div>
-        )}
 
         <div className="flex space-x-2">
           <button
@@ -327,7 +308,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 mb-4">{error}</p>
-          <button 
+          <button
             onClick={fetchDocuments}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           >
@@ -357,7 +338,7 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            
+
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -367,7 +348,7 @@ const Dashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            
+
             {/* Desktop Action Buttons */}
             <div className="hidden md:flex items-center space-x-2">
               <button
@@ -376,14 +357,14 @@ const Dashboard = () => {
               >
                 🔄
               </button>
-              
+
               <button
                 onClick={() => navigate('/profile')}
                 className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-medium py-2 px-4 rounded-lg border border-purple-500/30 transition-all duration-200 text-sm"
               >
                 ⚙️
               </button>
-              
+
               <button
                 onClick={handleLogout}
                 className="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium py-2 px-4 rounded-lg border border-red-500/30 transition-all duration-200 text-sm"
@@ -392,7 +373,7 @@ const Dashboard = () => {
               </button>
             </div>
           </div>
-          
+
           {/* Mobile Menu */}
           {isMobileMenuOpen && (
             <div className="md:hidden bg-black/40 backdrop-blur-sm border-t border-white/10 py-3">
@@ -407,7 +388,7 @@ const Dashboard = () => {
                   <span>🔄</span>
                   <span>Refresh Documents</span>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     navigate('/profile');
@@ -418,7 +399,7 @@ const Dashboard = () => {
                   <span>⚙️</span>
                   <span>Profile & Settings</span>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     handleLogout();
@@ -437,7 +418,7 @@ const Dashboard = () => {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
         {/* Compact Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-white/8 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
               <div>
@@ -453,7 +434,7 @@ const Dashboard = () => {
           <div className="bg-white/8 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-xs font-medium">Verified</p>
+                <p className="text-gray-300 text-xs font-medium">Accepted</p>
                 <p className="text-xl font-bold text-green-400">{stats.verified}</p>
               </div>
               <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
@@ -465,20 +446,8 @@ const Dashboard = () => {
           <div className="bg-white/8 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-xs font-medium">Pending</p>
-                <p className="text-xl font-bold text-yellow-400">{stats.pending}</p>
-              </div>
-              <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                <span className="text-sm">⏳</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/8 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-300 text-xs font-medium">Failed</p>
-                <p className="text-xl font-bold text-red-400">{stats.failed}</p>
+                <p className="text-gray-300 text-xs font-medium">Rejected</p>
+                <p className="text-xl font-bold text-red-400">{stats.rejected}</p>
               </div>
               <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
                 <span className="text-sm">❌</span>
@@ -499,7 +468,7 @@ const Dashboard = () => {
                   {filteredDocuments.length} of {documents.length} document{documents.length !== 1 ? 's' : ''}
                 </span>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 {/* Filter Dropdown */}
                 {showAllDocuments && (
@@ -510,11 +479,10 @@ const Dashboard = () => {
                       className="bg-white/10 text-white text-xs py-1 px-2 rounded border border-white/20 focus:border-blue-500 focus:outline-none"
                     >
                       <option value="all" className="bg-gray-800">All Status</option>
-                      <option value="verified" className="bg-gray-800">✅ Verified</option>
-                      <option value="pending" className="bg-gray-800">⏳ Pending</option>
-                      <option value="failed" className="bg-gray-800">❌ Failed</option>
+                      <option value="verified" className="bg-gray-800">✅ Accepted</option>
+                      <option value="rejected" className="bg-gray-800">❌ Rejected</option>
                     </select>
-                    
+
                     <select
                       value={documentSort}
                       onChange={(e) => setDocumentSort(e.target.value)}
@@ -526,7 +494,7 @@ const Dashboard = () => {
                     </select>
                   </>
                 )}
-                
+
                 {/* Manual Refresh Button */}
                 <button
                   onClick={() => {
@@ -540,7 +508,7 @@ const Dashboard = () => {
                   </svg>
                   <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
                 </button>
-                
+
                 {documents.length > 8 && (
                   <button
                     onClick={() => {
@@ -592,13 +560,13 @@ const Dashboard = () => {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {(showAllDocuments ? filteredDocuments : filteredDocuments.slice(0, 8)).map((document) => (
-                    <DocumentCard 
-                      key={document.id || document.fileName} 
+                    <DocumentCard
+                      key={document.id || document.fileName}
                       document={document}
                     />
                   ))}
                 </div>
-                
+
                 {/* Show pagination info for all documents view */}
                 {showAllDocuments && filteredDocuments.length > 8 && (
                   <div className="mt-6 text-center">
@@ -621,7 +589,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Show "View All" hint when showing recent */}
                 {!showAllDocuments && documents.length > 8 && (
                   <div className="mt-6 text-center">
@@ -698,12 +666,12 @@ const Dashboard = () => {
                 border: 'border-red-500/30'
               }
             };
-            
+
             const colors = colorClasses[category.color] || colorClasses.blue; // fallback to blue
-            
+
             // Get appropriate button text
             const getButtonText = (categoryName) => {
-              switch(categoryName) {
+              switch (categoryName) {
                 case 'ID Documents': return 'Upload ID';
                 case 'Certificates': return 'Upload Cert';
                 case 'School Certificates': return 'Upload School';
@@ -715,9 +683,9 @@ const Dashboard = () => {
                 default: return 'Upload Doc';
               }
             };
-            
+
             return (
-              <div 
+              <div
                 key={categoryId}
                 className="bg-white/8 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-center"
               >
@@ -739,7 +707,7 @@ const Dashboard = () => {
 
         {/* Document Details Modal */}
         {isModalOpen && (
-          <DocumentDetailsModal 
+          <DocumentDetailsModal
             document={selectedDocument}
             isOpen={isModalOpen}
             onClose={handleCloseModal}
