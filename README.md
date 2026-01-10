@@ -48,46 +48,54 @@ DocumentVerify/
 
 ---
 
-##  Installation & Setup
+##  🚀 One-Command Setup (Recommended)
+For the most seamless experience on a new machine (Windows), follow these two steps:
 
-### 1. AI/ML Service (Python 3.10+)
+### 1. Initial Setup
+Run the setup script from the root directory. This will automatically install all Node.js dependencies, create a Python virtual environment, and install all AI/ML requirements.
+```bash
+.\setup.bat
+```
+
+### 2. Start the System
+Once setup is complete, use the run script to launch all three services (Frontend, Backend, and AI Service) in separate windows simultaneously.
+```bash
+.\run_all.bat
+```
+
+---
+
+## 🛠️ Manual Installation & Setup
+
+If you prefer to set up manually or are on a non-Windows system:
+
+### 1. Prerequisites
+- **Node.js** (v16+)
+- **Python** (3.10 to 3.12)
+- **Windows Users**: Must install [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) for AI components.
+
+### 2. AI/ML Service
 ```bash
 cd ai-ml-service
-# Use a virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+.\venv\Scripts\activate   # On Linux/Mac: source venv/bin/activate
 pip install -r requirements.txt
-uvicorn app:app --reload --port 8000
+python app.py
 ```
-*Note: For Windows users, the **Microsoft Visual C++ Redistributable (2015-2022) x64** is required for OpenCV and QR components. Download it here: [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe).*
 
-### 2. Backend (Node.js)
+### 3. Backend (Node.js)
 ```bash
 cd server
 npm install
-# Configure your .env file with MONGODB_URI and JWT_SECRET
-npm start
+npm run dev
 ```
 
-### 3. Frontend (React)
+### 4. Frontend (React)
 ```bash
 cd client
 npm install
 npm start
 ```
-
-### One-Command Setup
-To install all requirements (Frontend, Backend, and AI Service) at once, run this in the root directory:
-```bash
-npm run install:all
-```
-
----
-
-### Shortcuts (Root Directory)
-- **Start Backend**: `npm run start:server`
-- **Start Frontend**: `npm run start:client`
-- **Start AI Service**: `npm run start:ai-ml`
 
 ---
 

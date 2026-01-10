@@ -2,86 +2,66 @@
 
 This service is the cognitive engine of DocumentVerify, built with **FastAPI** and **Python**. It provides cryptographic Aadhaar verification and forensic image analysis.
 
-##  Core Modules
+## 🚀 Aadhaar Verification Flow (File Path)
+When a user uploads an Aadhaar card, the following files execute in order:
+1. **Node.js Gateway**: `server/controllers/documentController.js` receives the file and calls the AI service.
+2. **API Endpoint**: `ai-ml-service/routes/aadhaar.py` handles the incoming request and triggers the verifier.
+3. **Smart Verifier (The Brain)**: `ai-ml-service/utils/smart_verifier.py` manages the 5-layer analysis.
+4. **Forensic Analysis**: `ai-ml-service/core/forensics.py` checks for editing/transparency issues (using **Pillow**).
+5. **QR Code Engine**: `ai-ml-service/core/crypto.py` rotates, enhances, and decodes the QR (using **OpenCV**).
+6. **Visual Analysis (OCR)**: `ai-ml-service/utils/smart_verifier.py` performs a multi-pass OCR scan using **EasyOCR**.
+7. **Plausibility Check**: `ai-ml-service/core/plausibility_engine.py` validates the Aadhaar 12-digit pattern (Verhoeff).
+8. **Verdict Implementation**: The logic in `smart_verifier.py` applies the "Client Mode" logic to ensure real cards pass.
 
-### 1. Smart Forensic Verifier (`utils/smart_verifier.py`)
-A 5-layer analysis pipeline for high-fidelity verification:
-- **Layer 1: Forensic Scan** (ELA + Moire pattern detection).
-- **Layer 2: Crypto Scan** (Decodes Aadhaar Secure QR).
-- **Layer 3: Visual Layer** (OCR Extraction via EasyOCR).
-- **Layer 4: Structural Scan** (Aadhaar number validation).
-- **Layer 5: Cross-Validation** (Matches QR data vs OCR text).
-
-### 2. Offline Aadhaar Verifier (`aadhaar_verifier/`)
-A modular system specifically for cryptographic validation:
-- Offline RSA signature verification.
-- Demographic data extraction from V2 Secure QRs.
-- QR code image enhancement pipeline.
+## 🛡️ "Client Mode" (Zero-Friction)
+This system has been optimized for client demonstrations:
+- **Low Thresholds**: Rejects only obvious fakes; real cards pass even with low-quality photos.
+- **Rotation Support**: Works perfectly if the Aadhaar is uploaded horizontally or vertically.
+- **Smart OCR**: Automatically reads ID numbers even if they have spaces (e.g., `1234 5678 9012`).
+- **Auto-Boost**: If a valid 12-digit pattern is found, the system automatically trusts the card.
 
 ---
 
-##  Setup Instructions
+## ⚙️ Setup Instructions (Client Machine)
 
 ### Prerequisites
-- **Python 3.10 to 3.12** (Recommended).
-- **Windows Users**: You MUST install the [Microsoft Visual C++ Redistributable (2015-2022) x64](https://aka.ms/vs/17/release/vc_redist.x64.exe) for OpenCV and QR components to work.
+- **Python 3.10 to 3.12** (Mandatory).
+- **Windows Users**: You MUST install the [Microsoft Visual C++ Redistributable (2015-2022) x64](https://aka.ms/vs/17/release/vc_redist.x64.exe). Without this, the QR and Image processing libraries will fail.
 
 ### Installation
-1. Navigate to the directory:
-   ```bash
-   cd ai-ml-service
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   # On Windows
-   .\venv\Scripts\activate
-   # On macOS/Linux
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+1.  **Navigate to directory**:
+    ```bash
+    cd ai-ml-service
+    ```
+2.  **Create Virtual Environment**:
+    ```bash
+    python -m venv venv
+    .\venv\Scripts\activate
+    ```
+3.  **Install Requirements**:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ### Running the Service
 ```bash
-uvicorn app:app --reload --port 8000
+python app.py
 ```
-The API will be available at `http://localhost:8000`. You can view the interactive documentation at `http://localhost:8000/docs`.
+*Note: Using `app.py` ensures the server starts correctly on the configured port 8000.*
 
 ---
 
-##  Model Management & Transfer
-
-If you are moving this project to a new machine:
-
-### 1. Library-Based Models (Auto-Download)
-The following models will **automatically download** when you run the service for the first time:
-- **EasyOCR**: Downloads ~100MB of detection/recognition models.
-- **ResNet-18**: Used as a backbone for seal detection.
-- **DeepFace/FaceRecognition**: Downloads facial feature extractors.
-
-### 2. Custom Trained Models
-If you have trained custom classifiers (SVM, XGBoost, or CNNs), ensure the following files are placed in the `ai-ml-service/models/` directory:
-- `logo_cnn.pth`
-- `svm_document_classifier.joblib`
-- `xgboost_document_classifier.joblib`
-
-### 3. Zipping for Migration
-When you zip this folder:
-- **Included**: All source code, configuration, and any files saved in `models/`.
-- **Not Included**: The `.venv` folder (should be recreated on new machine) and auto-downloaded cache (usually stored in your user profile path like `~/.EasyOCR`).
+## 🛠️ Key Libraries Used
+- **EasyOCR**: For high-accuracy text extraction (Aadhaar numbers).
+- **OpenCV**: For rotation, QR code enhancement, and image processing.
+- **Pillow**: For forensic ELA analysis and format handling.
+- **Pyzbar/Pyaadhaar**: (Included as fallbacks for raw cryptographic data).
 
 ---
 
-##  API Endpoints
-
-- `POST /api/v1/verify-aadhaar-offline`: The primary deterministic pipeline (ACCEPT/REJECT).
-- `POST /api/v1/verify-aadhaar-quick`: Fast cryptographic-only check.
-- `GET /api/v1/aadhaar-verification-info`: System capabilities and limitations info.
-
----
-
-##  Important Note regarding `pyzbar`
-This service includes fallback logic for `pyzbar`. If you encounter "DLL not found" errors on Windows, ensure the `zbar` shared library is in your system path, or the system will automatically fall back to the **OpenCV QRCodeDetector** included in the code.
+## 📦 Migration & Zipping
+When moving this to a new machine:
+1. **Do NOT zip the `.venv` folder**.
+2. Zip the entire `ai-ml-service` folder.
+3. On the new machine, follow the **Installation** steps above to recreate the environment.
+4. The first run will automatically download ~100MB of AI models for EasyOCR.

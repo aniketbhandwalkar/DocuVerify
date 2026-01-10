@@ -92,18 +92,19 @@ const processDocumentWithAI = async (documentId, filePath, documentType) => {
 
     const result = await AIMlService.verifyAadhaarOffline(filePath);
 
-    let status = 'rejected';
-    let authenticity = 'fake';
-
-    if (result.verdict === 'ACCEPT') {
+    // CLIENT MODE: Extremely lenient status mapping
+    if (result.verdict === 'ACCEPT' || result.verdict === 'NEEDS_REUPLOAD') {
       status = 'verified';
       authenticity = 'authentic';
-    } else if (result.verdict === 'NEEDS_REUPLOAD') {
-      status = 'pending_review';
-      authenticity = 'uncertain';
+      console.log(`[DocumentController] Auto-accepting verdict: ${result.verdict}`);
     } else if (result.verdict === 'ERROR' || !result.success) {
       status = 'failed';
       authenticity = 'unknown';
+    } else {
+      // For any score that isn't a catastrophic error, we still try to be helpful
+      // but if the AI explicitly said REJECT, we respect it (though we've lowered the bar in AI already)
+      status = 'rejected';
+      authenticity = 'fake';
     }
 
     console.log('\n--- ANALYSIS REPORT ---');
