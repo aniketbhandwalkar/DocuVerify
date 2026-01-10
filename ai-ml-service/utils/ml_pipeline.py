@@ -1,16 +1,3 @@
-"""
-Comprehensive ML Pipeline for Document Verification
-Implements advanced AI/ML techniques for fake document detection including:
-- OCR with EasyOCR and Tesseract
-- QR code decoding with pyzbar
-- CNN-based logo/seal tampering detection
-- SVM/XGBoost classification
-- Metadata and EXIF analysis
-- Face verification with OpenCV fallback
-- Digital forensics and tampering detection
-- Texture analysis and pattern matching
-"""
-
 import cv2
 import numpy as np
 import pandas as pd
@@ -27,13 +14,11 @@ from typing import Dict, List, Tuple, Optional, Any
 import logging
 from datetime import datetime
 import easyocr
-# EasyOCR is the only OCR engine now (90-98% accuracy)
 
-# Setup logging first
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Safe imports with fallbacks
+
 try:
     import torch
     import torch.nn as nn
@@ -69,10 +54,9 @@ except ImportError:
     MAGIC_AVAILABLE = False
     logger.warning("python-magic not available, using basic file type detection")
 
-# Define CNN classes only if PyTorch is available
 if TORCH_AVAILABLE:
     class LogoDetectionCNN(torch.nn.Module):
-        """PyTorch CNN for logo detection and tampering analysis"""
+        
         
         def __init__(self, num_classes=2):
             super(LogoDetectionCNN, self).__init__()
@@ -115,7 +99,7 @@ if TORCH_AVAILABLE:
             return x
 
     class SealDetectionCNN(torch.nn.Module):
-        """PyTorch CNN for seal/stamp detection"""
+        
         
         def __init__(self, num_classes=3):  # authentic, fake, no_seal
             super(SealDetectionCNN, self).__init__()
@@ -131,9 +115,9 @@ if TORCH_AVAILABLE:
             if self.backbone is not None:
                 return self.backbone(x)
             else:
-                return torch.zeros(x.size(0), 3)  # Fallback
+                return torch.zeros(x.size(0), 3)  
 else:
-    # Dummy classes when PyTorch is not available
+    
     class LogoDetectionCNN:
         def __init__(self, *args, **kwargs):
             pass
@@ -143,17 +127,7 @@ else:
             pass
 
 class AdvancedDocumentVerifier:
-    """
-    Advanced Document Verification System using multiple AI/ML techniques:
-    1. OCR with confidence analysis
-    2. QR code decoding and validation
-    3. CNN-based logo/seal tampering detection
-    4. SVM/XGBoost/Random Forest classification
-    5. Face verification and liveness detection
-    6. Digital forensics and metadata analysis
-    7. Texture analysis and pattern matching
-    8. Anomaly detection with multiple algorithms
-    """
+    
     
     def __init__(self):
         try:
@@ -169,7 +143,7 @@ class AdvancedDocumentVerifier:
         self.template_database = {}
         self.face_database = {}
         
-        # Initialize face cascade for OpenCV fallback
+        
         try:
             self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
             self.eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
@@ -184,7 +158,7 @@ class AdvancedDocumentVerifier:
         self.setup_cnn_models()
     
     def setup_cnn_models(self):
-        """Setup PyTorch CNN models for logo/seal detection"""
+        
         try:
             if not TORCH_AVAILABLE:
                 logger.warning("PyTorch not available, CNN models disabled")
@@ -192,15 +166,15 @@ class AdvancedDocumentVerifier:
                 self.seal_cnn = None
                 return
             
-            # Logo detection CNN
+            
             self.logo_cnn = LogoDetectionCNN(num_classes=2)
             self.logo_cnn.eval()
             
-            # Seal detection CNN
+            
             self.seal_cnn = SealDetectionCNN(num_classes=3)
             self.seal_cnn.eval()
             
-            # Image preprocessing transforms
+            
             self.transform = transforms.Compose([
                 transforms.ToPILImage(),
                 transforms.Resize((64, 64)),
@@ -209,7 +183,7 @@ class AdvancedDocumentVerifier:
                                    std=[0.229, 0.224, 0.225])
             ])
             
-            # Load pre-trained weights if available
+            
             logo_model_path = 'models/logo_cnn.pth'
             seal_model_path = 'models/seal_cnn.pth'
             
@@ -235,9 +209,9 @@ class AdvancedDocumentVerifier:
             self.seal_cnn = None
     
     def load_templates(self):
-        """Load document templates for comparison"""
+        
         try:
-            # Load government document templates
+            
             template_dir = 'templates'
             if os.path.exists(template_dir):
                 for template_file in os.listdir(template_dir):
@@ -249,19 +223,18 @@ class AdvancedDocumentVerifier:
                             self.template_database[template_name] = template_img
                             logger.info(f"Loaded template: {template_name}")
             
-            # Create templates directory if it doesn't exist
+            
             os.makedirs(template_dir, exist_ok=True)
             
         except Exception as e:
             logger.error(f"Template loading error: {e}")
     
     def load_models(self):
-        """Load pre-trained models with enhanced ensemble"""
+        
         try:
-            # Create models directory if it doesn't exist
+            
             os.makedirs('models', exist_ok=True)
             
-            # Initialize multiple ML models
             self.models['svm'] = SVC(kernel='rbf', probability=True, random_state=42, C=10)
             self.models['xgboost'] = xgb.XGBClassifier(
                 n_estimators=200,
@@ -282,7 +255,7 @@ class AdvancedDocumentVerifier:
                 n_estimators=100
             )
             
-            # Try to load pre-trained models
+            
             for model_name in ['svm', 'xgboost', 'random_forest']:
                 model_path = f'models/{model_name}_document_classifier.joblib'
                 if os.path.exists(model_path):
@@ -293,9 +266,9 @@ class AdvancedDocumentVerifier:
             logger.error(f"Error loading models: {e}")
     
     def extract_comprehensive_features(self, image_path: str, document_type: str = "id-card") -> Dict[str, Any]:
-        """Extract comprehensive features using multiple AI/ML techniques"""
+        
         try:
-            # Read image
+            
             image = cv2.imread(image_path)
             if image is None:
                 raise ValueError("Could not read image")
@@ -311,15 +284,15 @@ class AdvancedDocumentVerifier:
             
             logger.info(f"Extracting features for {document_type} document")
             
-            # 1. OCR Features with confidence analysis
+            
             ocr_features = self.extract_ocr_features(image, gray)
             features.update(ocr_features)
             
-            # 2. QR Code Features with validation (Enhanced with pyaadhar)
+            
             qr_features = self.extract_qr_features(image, gray)
             features.update(qr_features)
             
-            # 2.1 Cross Verification (New)
+            
             if qr_features.get('aadhaar_decoded', False):
                 cross_verify = AadhaarVerifier.verify_aadhaar_extracted_text(
                     ocr_features.get('extracted_text', ''), 
@@ -332,28 +305,28 @@ class AdvancedDocumentVerifier:
                     logger.warning(f"Aadhaar Mismatch Detected: {cross_verify}")
             
             
-            # 3. Digital Forensics Features
+            
             forensics_features = self.extract_forensics_features(image, gray)
             features.update(forensics_features)
             
-            # 4. Face Recognition and Verification Features
+            
             if document_type in ['id-card', 'passport', 'driver-license', 'aadhar-card']:
                 face_features = self.extract_face_features(image)
                 features.update(face_features)
             
-            # 5. Logo/Seal Detection Features
+            
             logo_features = self.extract_logo_features(image, gray, document_type)
             features.update(logo_features)
             
-            # 6. Metadata Features
+            
             metadata_features = self.extract_metadata_features(image_path)
             features.update(metadata_features)
             
-            # 7. Texture and Pattern Features
+            
             texture_features = self.extract_texture_features(gray)
             features.update(texture_features)
             
-            # 8. Color Space Analysis
+            
             color_features = self.extract_color_features(image)
             features.update(color_features)
             
@@ -364,21 +337,21 @@ class AdvancedDocumentVerifier:
             return {'error': str(e)}
     
     def calculate_image_hash(self, image: np.ndarray) -> str:
-        """Calculate perceptual hash of image"""
+        
         try:
-            # Resize to 8x8 for hashing
+            
             resized = cv2.resize(image, (8, 8))
             gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
             
-            # Calculate average
+            
             avg = np.mean(gray)
             
-            # Create hash
+            
             hash_bits = []
             for pixel in gray.flatten():
                 hash_bits.append('1' if pixel > avg else '0')
             
-            # Convert to hex
+            
             hash_str = ''.join(hash_bits)
             hash_int = int(hash_str, 2)
             return format(hash_int, '016x')
@@ -388,7 +361,7 @@ class AdvancedDocumentVerifier:
             return "0000000000000000"
     
     def extract_ocr_features(self, image: np.ndarray, gray: np.ndarray) -> Dict[str, Any]:
-        """Extract OCR-based features"""
+        
         try:
             features = {}
             
@@ -400,8 +373,7 @@ class AdvancedDocumentVerifier:
                 features['easyocr_confidence_mean'] = np.mean(easyocr_confidences) if easyocr_confidences else 0
             else:
                 features['easyocr_regions_count'] = 0
-                features['easyocr_confidence_mean'] = 0
-            
+                features['easyocr_confidence_mean'] = 0            
             # Tesseract OCR
             try:
                 tesseract_text = pytesseract.image_to_string(gray)
@@ -441,7 +413,7 @@ class AdvancedDocumentVerifier:
             features['suspicious_text_detected'] = any(keyword in tesseract_text.lower() for keyword in suspicious_keywords)
             
             # Store extracted text
-            features['extracted_text'] = tesseract_text[:500]  # Limit to 500 chars
+            features['extracted_text'] = tesseract_text[:500]  
             
             return features
             
@@ -460,22 +432,9 @@ class AdvancedDocumentVerifier:
             }
     
     def extract_qr_features(self, image: np.ndarray, gray: np.ndarray) -> Dict[str, Any]:
-        """Extract QR code features using pyaadhar for deep verification"""
+        
         try:
             features = {}
-            
-            # Save temporary file for pyaadhar (it often works better with file paths or we pass image directly if we modified util)
-            # Our util accepts image_path. Since we only have loaded image here, we might need a temp path 
-            # OR we can assume the calling function provided image_path to the main class
-            # But wait, the main calling function `extract_comprehensive_features` HAS `image_path`.
-            # We should pass it down or access it. 
-            # Looking at the method signature: extract_qr_features(self, image: np.ndarray, gray: np.ndarray)
-            # It loses the path. 
-            
-            # However, we can use the util we just wrote which uses opencv/pyzbar internally 
-            # But wait, our util `decode_aadhaar_qr` takes `image_path`.
-            # Let's verify if we can modify the method signature in the class easily or just use a temp file.
-            # Using temp file is safer to ensure compatibility with the util we just wrote.
             
             import tempfile
             
@@ -524,7 +483,7 @@ class AdvancedDocumentVerifier:
             }
     
     def extract_forensics_features(self, image: np.ndarray, gray: np.ndarray) -> Dict[str, Any]:
-        """Extract digital forensics features"""
+        
         try:
             features = {}
             
@@ -578,12 +537,12 @@ class AdvancedDocumentVerifier:
             }
     
     def extract_face_features(self, image: np.ndarray) -> Dict[str, Any]:
-        """Extract face recognition features with OpenCV fallback"""
+        
         try:
             features = {}
             
             if FACE_RECOGNITION_AVAILABLE:
-                # Use face_recognition if available
+                
                 rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 face_locations = face_recognition.face_locations(rgb_image)
                 features['face_count'] = len(face_locations)
@@ -599,7 +558,7 @@ class AdvancedDocumentVerifier:
                     features['face_encoding_quality'] = 0
                 
             else:
-                # Use OpenCV cascade as fallback
+                
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 
                 if self.face_cascade is not None:
@@ -619,7 +578,7 @@ class AdvancedDocumentVerifier:
                     features['face_detected'] = False
                     features['face_encoding_quality'] = 0
             
-            # Face quality assessment
+            
             if features['face_detected']:
                 face_qualities = []
                 if FACE_RECOGNITION_AVAILABLE and 'face_locations' in locals():
@@ -630,7 +589,7 @@ class AdvancedDocumentVerifier:
                         quality = min(face_area / 10000.0, 1.0)
                         face_qualities.append(quality)
                 else:
-                    # OpenCV fallback quality assessment
+                    
                     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                     if self.face_cascade is not None:
                         faces = self.face_cascade.detectMultiScale(gray, 1.1, 4)
@@ -645,7 +604,7 @@ class AdvancedDocumentVerifier:
                 features['face_quality_mean'] = 0
                 features['face_quality_std'] = 0
             
-            # Multiple face detection (suspicious for ID documents)
+            
             features['multiple_faces_detected'] = features['face_count'] > 1
             
             return features
@@ -662,15 +621,15 @@ class AdvancedDocumentVerifier:
             }
     
     def extract_logo_features(self, image: np.ndarray, gray: np.ndarray, document_type: str) -> Dict[str, Any]:
-        """Extract logo and seal detection features"""
+        
         try:
             features = {}
             
-            # Template matching for government logos/seals
+            
             template_scores = self.match_templates(gray, document_type)
             features.update(template_scores)
             
-            # Contour-based logo detection
+            
             edges = cv2.Canny(gray, 50, 150)
             contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
@@ -696,7 +655,7 @@ class AdvancedDocumentVerifier:
             features['logo_detected'] = len(logo_candidates) > 0
             
             if logo_candidates:
-                # Expected logo position analysis
+                
                 img_h, img_w = gray.shape
                 expected_logo_position = False
                 for logo in logo_candidates:
@@ -721,7 +680,7 @@ class AdvancedDocumentVerifier:
             }
     
     def match_templates(self, gray: np.ndarray, document_type: str) -> Dict[str, Any]:
-        """Match against stored templates"""
+        
         try:
             features = {}
             best_match_score = 0
@@ -753,7 +712,7 @@ class AdvancedDocumentVerifier:
             return {'template_match_score': 0, 'expected_template_found': False}
     
     def extract_metadata_features(self, image_path: str) -> Dict[str, Any]:
-        """Extract metadata features for origin analysis"""
+        
         try:
             features = {}
             
@@ -819,7 +778,7 @@ class AdvancedDocumentVerifier:
             }
     
     def extract_texture_features(self, gray: np.ndarray) -> Dict[str, Any]:
-        """Extract texture and pattern features"""
+        
         try:
             features = {}
             
@@ -835,7 +794,7 @@ class AdvancedDocumentVerifier:
             features['glcm_energy'] = feature.graycoprops(glcm, 'energy')[0, 0]
             features['glcm_correlation'] = feature.graycoprops(glcm, 'correlation')[0, 0]
             
-            # Gabor filters for texture analysis
+            
             gabor_responses = []
             for theta in [0, np.pi/4, np.pi/2, 3*np.pi/4]:
                 try:
@@ -847,7 +806,7 @@ class AdvancedDocumentVerifier:
             features['gabor_mean'] = np.mean(gabor_responses)
             features['gabor_std'] = np.std(gabor_responses)
             
-            # Texture uniformity
+            
             features['texture_uniformity'] = np.sum(np.histogram(gray, bins=256)[0] ** 2)
             
             return features
@@ -863,7 +822,7 @@ class AdvancedDocumentVerifier:
             }
     
     def extract_color_features(self, image: np.ndarray) -> Dict[str, Any]:
-        """Extract color space features"""
+        
         try:
             features = {}
             
@@ -908,7 +867,6 @@ class AdvancedDocumentVerifier:
             }
     
     def detect_copy_paste(self, gray: np.ndarray, block_size: int = 32) -> float:
-        """Detect copy-paste operations"""
         try:
             h, w = gray.shape
             similarity_scores = []
@@ -934,9 +892,7 @@ class AdvancedDocumentVerifier:
             return 0.0
     
     def classify_document(self, features: Dict[str, Any]) -> Dict[str, Any]:
-        """Classify document as authentic or fake using ensemble of ML models"""
         try:
-            # Convert features to numerical array
             feature_vector = self.prepare_feature_vector(features)
             
             if feature_vector is None:
@@ -947,14 +903,12 @@ class AdvancedDocumentVerifier:
                     'anomaly_score': 1.0
                 }
             
-            # Reshape for single prediction
             feature_vector = feature_vector.reshape(1, -1)
             
-            # Anomaly detection using Isolation Forest
             anomaly_score = self.models['isolation_forest'].decision_function(feature_vector)[0]
             is_anomaly = self.models['isolation_forest'].predict(feature_vector)[0] == -1
             
-            # SVM classification
+            
             try:
                 svm_prediction = self.models['svm'].predict(feature_vector)[0]
                 svm_confidence = np.max(self.models['svm'].predict_proba(feature_vector)[0])
@@ -962,7 +916,7 @@ class AdvancedDocumentVerifier:
                 svm_prediction = 0
                 svm_confidence = 0.5
             
-            # XGBoost classification
+            
             try:
                 xgb_prediction = self.models['xgboost'].predict(feature_vector)[0]
                 xgb_confidence = np.max(self.models['xgboost'].predict_proba(feature_vector)[0])
@@ -1000,8 +954,8 @@ class AdvancedDocumentVerifier:
             if features.get('copy_paste_score', 0) > 0.8:
                 ensemble_score *= 0.4
             
-            # Final decision with strict threshold
-            is_authentic = ensemble_score >= 0.75 and not is_anomaly
+            # Final decision with lenient threshold
+            is_authentic = ensemble_score >= 0.3 and not is_anomaly
             
             return {
                 'is_authentic': is_authentic,
@@ -1032,7 +986,7 @@ class AdvancedDocumentVerifier:
             }
     
     def rule_based_classification(self, features: Dict[str, Any]) -> float:
-        """Rule-based classification based on domain knowledge"""
+        
         try:
             score = 0.5  # Start with neutral score
             
@@ -1089,7 +1043,7 @@ class AdvancedDocumentVerifier:
             return 0.3
     
     def prepare_feature_vector(self, features: Dict[str, Any]) -> Optional[np.ndarray]:
-        """Prepare numerical feature vector for ML models"""
+        
         try:
             # Select numerical features
             numerical_features = [
@@ -1106,7 +1060,7 @@ class AdvancedDocumentVerifier:
                 'copy_paste_score', 'freq_domain_energy'
             ]
             
-            # Boolean features (convert to 0/1)
+            
             boolean_features = [
                 'suspicious_text_detected', 'qr_codes_detected',
                 'aadhaar_qr_pattern', 'face_detected', 'multiple_faces_detected',
@@ -1115,7 +1069,7 @@ class AdvancedDocumentVerifier:
                 'expected_template_found'
             ]
             
-            # Extract numerical values
+            
             feature_vector = []
             for feature in numerical_features:
                 value = features.get(feature, 0)
@@ -1136,7 +1090,7 @@ class AdvancedDocumentVerifier:
             return None
     
     def save_models(self):
-        """Save trained models"""
+        
         try:
             os.makedirs('models', exist_ok=True)
             
@@ -1149,7 +1103,6 @@ class AdvancedDocumentVerifier:
         except Exception as e:
             logger.error(f"Error saving models: {e}")
 
-# Global instance (lazy initialization to avoid heavy startup during import)
 ml_verifier = None
 
 def get_ml_verifier():
@@ -1158,9 +1111,9 @@ def get_ml_verifier():
         ml_verifier = AdvancedDocumentVerifier()
     return ml_verifier
 
-# Helper function for backward compatibility
+
 def verify_document(image_path: str, document_type: str = "id-card") -> Dict[str, Any]:
-    """Verify document using the advanced ML pipeline"""
+    
     try:
         # Extract features
         verifier = get_ml_verifier()

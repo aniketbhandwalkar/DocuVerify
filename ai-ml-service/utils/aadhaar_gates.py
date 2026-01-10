@@ -1,20 +1,3 @@
-"""
-Hard Gating Decision Module for Aadhaar Verification
-
-Replaces soft scoring with deterministic gates that STOP processing
-if critical requirements are not met.
-
-Gates (in order):
-1. OCR Quality: confidence ≥ 0.75, text_length ≥ 150
-2. Aadhaar Number: Valid 12-digit with Verhoeff checksum
-3. Required Fields: Name + DOB present
-
-Outcomes:
-- NEEDS_REUPLOAD: Poor OCR quality
-- REJECT: Invalid/missing Aadhaar
-- ACCEPT: All gates passed
-"""
-
 import logging
 from typing import Dict, Any, Tuple
 
@@ -22,26 +5,13 @@ logger = logging.getLogger(__name__)
 
 
 class AadhaarDecisionGates:
-    """
-    Deterministic decision gates for Aadhaar verification.
-    No soft scoring - hard gates that reject immediately if failed.
-    """
     
-    # Gate thresholds - ADJUSTED FOR REAL-WORLD IMAGES
-    # Screenshots and phone photos typically get 30-50% OCR confidence
-    MIN_OCR_CONFIDENCE = 0.30  # Lowered from 0.75 - screenshots get ~38%
-    MIN_TEXT_LENGTH = 22       # Lowered to 22 - minimum viable text
-    MIN_FINAL_CONFIDENCE = 50  # Lowered from 70 - more lenient
+    MIN_OCR_CONFIDENCE = 0.30  
+    MIN_TEXT_LENGTH = 22       
+    MIN_FINAL_CONFIDENCE = 30  
     
     @classmethod
     def check_ocr_quality(cls, ocr_result: Dict[str, Any]) -> Tuple[str, str]:
-        """
-        Gate 1: OCR Quality Check
-        
-        Returns:
-            ("PASS", None) if quality sufficient
-            ("NEEDS_REUPLOAD", reason) if quality too poor
-        """
         ocr_conf = ocr_result.get('ocr_confidence', {}).get('mean', 0.0)
         text_length = len(ocr_result.get('full_text', ''))
         
@@ -60,13 +30,6 @@ class AadhaarDecisionGates:
     
     @classmethod
     def check_aadhaar_number(cls, ocr_result: Dict[str, Any]) -> Tuple[str, str]:
-        """
-        Gate 2: Aadhaar Number Validation
-        
-        Returns:
-            ("PASS", None) if valid Aadhaar number with correct checksum
-            ("REJECT", reason) if no number or invalid checksum
-        """
         aadhaar_number = ocr_result.get('aadhaar_number')
         aadhaar_valid = ocr_result.get('aadhaar_valid', False)
         
@@ -85,19 +48,6 @@ class AadhaarDecisionGates:
     
     @classmethod
     def calculate_confidence(cls, ocr_result: Dict[str, Any]) -> int:
-        """
-        Calculate final confidence score (only called if all gates passed)
-        
-        Formula:
-        - Base: OCR confidence × 100
-        - Bonus: +10 if Aadhaar valid
-        - Bonus: +5 if Name present
-        - Bonus: +5 if DOB present
-        - Max: 100
-        
-        Returns:
-            Confidence score 0-100
-        """
         # Base score from OCR confidence
         ocr_conf = ocr_result.get('ocr_confidence', {}).get('mean', 0.0)
         base_score = ocr_conf * 100
@@ -124,13 +74,6 @@ class AadhaarDecisionGates:
     
     @classmethod
     def make_final_decision(cls, confidence: int) -> Tuple[str, str]:
-        """
-        Gate 3: Final Decision based on confidence
-        
-        Returns:
-            ("ACCEPT", message) if confidence ≥ threshold
-            ("REJECT", reason) otherwise
-        """
         if confidence >= cls.MIN_FINAL_CONFIDENCE:
             message = f"Aadhaar verified with {confidence}% confidence"
             logger.info(f"Final Decision: ACCEPT ({message})")
@@ -142,21 +85,6 @@ class AadhaarDecisionGates:
     
     @classmethod
     def execute_full_pipeline(cls, ocr_result: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Execute all gates in sequence and return final decision
-        
-        Args:
-            ocr_result: Full OCR extraction result from AadhaarOCRExtractor
-            
-        Returns:
-            {
-                "verdict": "ACCEPT" | "REJECT" | "NEEDS_REUPLOAD",
-                "confidence": int (0-100),
-                "reason": str,
-                "gates_passed": [list of passed gates],
-                "gates_failed": [list of failed gates]
-            }
-        """
         # CONSOLE LOGGING - SHOW DECISION MAKING
         print(f"\n{'='*60}")
         print(f"[AADHAAR DECISION GATES]")
@@ -231,13 +159,4 @@ class AadhaarDecisionGates:
 
 # Convenience function
 def verify_aadhaar_with_gates(ocr_result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Verify Aadhaar using hard gating logic
-    
-    Args:
-        ocr_result: Result from AadhaarOCRExtractor.extract_aadhaar_data()
-        
-    Returns:
-        Decision dict with verdict, confidence, and reason
-    """
     return AadhaarDecisionGates.execute_full_pipeline(ocr_result)

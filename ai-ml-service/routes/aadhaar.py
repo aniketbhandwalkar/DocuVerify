@@ -1,8 +1,4 @@
-"""
-Aadhaar Verification API Routes
 
-FastAPI router for Aadhaar card verification endpoints.
-"""
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
@@ -34,17 +30,7 @@ router = APIRouter(tags=["Aadhaar Verification"])
 
 @router.post("/verify-aadhaar-offline")
 async def verify_aadhaar_offline(file: UploadFile = File(...)):
-    """
-    Verify Aadhaar using HARD GATING PIPELINE (deterministic decisions)
     
-    Uses single unified pipeline:
-    Image → Preprocessing → OCR → Extract → Hard Gates → Decision
-    
-    Returns:
-    - ACCEPT: All gates passed, confidence ≥ 70%
-    - REJECT: Invalid/missing Aadhaar number
-    - NEEDS_REUPLOAD: Poor OCR quality
-    """
     temp_file = None
     
     try:
@@ -111,16 +97,7 @@ async def verify_aadhaar_offline(file: UploadFile = File(...)):
 
 @router.post("/verify-aadhaar-quick")
 async def verify_aadhaar_quick(file: UploadFile = File(...)):
-    """
-    Quick Aadhaar verification - simplified response.
     
-    Returns only essential verification information:
-    - verdict (authentic/fake/uncertain)
-    - confidence_score
-    - qr_detected
-    - signature_valid
-    - extracted basic info
-    """
     temp_file = None
     
     try:
@@ -161,9 +138,7 @@ async def verify_aadhaar_quick(file: UploadFile = File(...)):
 
 @router.get("/aadhaar-verification-info")
 async def get_verification_info():
-    """
-    Get information about the Aadhaar verification system.
-    """
+    
     return {
         "system": "Offline Aadhaar Card Verification System",
         "version": "2.0.0",

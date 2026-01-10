@@ -13,7 +13,7 @@ router = APIRouter()
 _ocr_reader = None
 
 def get_ocr_reader():
-    """Get or initialize EasyOCR reader"""
+    
     global _ocr_reader
     if _ocr_reader is None:
         try:
@@ -26,9 +26,7 @@ def get_ocr_reader():
 
 @router.post("/ocr")
 async def perform_ocr_analysis(file: UploadFile = File(...)):
-    """
-    Perform OCR (Optical Character Recognition) on uploaded document
-    """
+    
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
@@ -57,9 +55,7 @@ async def perform_ocr_analysis(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
 
 def extract_text_with_confidence(image):
-    """
-    Extract text from image with confidence scores using EasyOCR
-    """
+    
     try:
         # Convert PIL to numpy array
         img_array = np.array(image)
@@ -111,9 +107,7 @@ def extract_text_with_confidence(image):
         }
 
 def preprocess_image_for_ocr(image):
-    """
-    Preprocess image to improve OCR accuracy
-    """
+    
     try:
         # Convert to grayscale if needed
         if len(image.shape) == 3:

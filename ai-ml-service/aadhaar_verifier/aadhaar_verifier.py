@@ -1,16 +1,4 @@
-"""
-Main Aadhaar Verifier - Orchestrator Module
 
-Coordinates all verification components:
-1. Image Preprocessing
-2. QR Detection & Decoding
-3. Digital Signature Verification
-4. OCR Text Extraction
-5. Cross-Validation
-6. Confidence Scoring
-
-Returns a comprehensive verification result.
-"""
 
 import time
 import logging
@@ -34,32 +22,13 @@ logger = logging.getLogger(__name__)
 
 
 class AadhaarVerifier:
-    """
-    Main orchestrator for Aadhaar card verification.
     
-    Provides a complete offline verification pipeline that:
-    - Detects and decodes Aadhaar Secure QR codes
-    - Verifies digital signatures using UIDAI public certificate
-    - Extracts text via OCR for cross-validation
-    - Produces a confidence score and detailed report
-    
-    IMPORTANT: This is an academic/demonstration system.
-    It does NOT connect to UIDAI databases for online verification.
-    """
     
     def __init__(self):
         self.checks_performed = []
     
     def verify(self, image_input: Union[str, bytes, np.ndarray]) -> AadhaarVerificationResult:
-        """
-        Perform complete Aadhaar card verification.
         
-        Args:
-            image_input: Image file path, bytes, or numpy array
-            
-        Returns:
-            AadhaarVerificationResult with all verification details
-        """
         start_time = time.time()
         result = AadhaarVerificationResult()
         self.checks_performed = []
@@ -255,12 +224,7 @@ class AadhaarVerifier:
         return result
     
     def get_verdict(self, result: AadhaarVerificationResult) -> dict:
-        """
-        Get a simplified verdict from verification result.
         
-        Returns:
-            dict with 'verdict', 'confidence', 'summary'
-        """
         verdict = confidence_scorer.get_verdict(result.confidence_score)
         
         return {
@@ -277,14 +241,6 @@ aadhaar_verifier = AadhaarVerifier()
 
 
 def verify_aadhaar_card(image_input: Union[str, bytes, np.ndarray]) -> dict:
-    """
-    Convenience function for Aadhaar verification.
     
-    Args:
-        image_input: Image file path, bytes, or numpy array
-        
-    Returns:
-        Dictionary with verification results
-    """
     result = aadhaar_verifier.verify(image_input)
     return result.to_dict()

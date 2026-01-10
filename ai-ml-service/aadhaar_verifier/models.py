@@ -1,8 +1,4 @@
-"""
-Data Models for Aadhaar Verification System
 
-Pydantic models and dataclasses for type safety and validation.
-"""
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
@@ -11,14 +7,14 @@ from datetime import datetime
 
 
 class QRType(Enum):
-    """Type of Aadhaar QR code"""
+    
     SECURE_QR_V2 = "secure_qr_v2"
     OLD_XML_QR = "old_xml_qr"
     UNKNOWN = "unknown"
 
 
 class Gender(Enum):
-    """Gender enumeration"""
+    
     MALE = "M"
     FEMALE = "F"
     OTHER = "O"
@@ -27,7 +23,7 @@ class Gender(Enum):
 
 @dataclass
 class PreprocessedImage:
-    """Result of image preprocessing"""
+    
     original_path: str
     processed_image: Any  # numpy array
     rotation_applied: float = 0.0
@@ -40,7 +36,7 @@ class PreprocessedImage:
 
 @dataclass
 class DemographicData:
-    """Demographic data extracted from QR code"""
+    
     name: Optional[str] = None
     dob: Optional[str] = None  # Date of Birth (DD-MM-YYYY)
     yob: Optional[str] = None  # Year of Birth
@@ -57,7 +53,7 @@ class DemographicData:
 
 @dataclass
 class SignatureResult:
-    """Result of digital signature verification"""
+    
     is_valid: bool
     verification_method: str = ""
     hash_algorithm: str = "SHA-256"
@@ -69,7 +65,7 @@ class SignatureResult:
 
 @dataclass
 class OCRExtractedData:
-    """Data extracted via OCR from the Aadhaar image"""
+    
     raw_text: str = ""
     name: Optional[str] = None
     dob: Optional[str] = None
@@ -84,7 +80,7 @@ class OCRExtractedData:
 
 @dataclass
 class FieldMatch:
-    """Result of comparing a single field"""
+    
     field_name: str
     qr_value: Optional[str]
     ocr_value: Optional[str]
@@ -95,7 +91,7 @@ class FieldMatch:
 
 @dataclass
 class CrossValidationResult:
-    """Result of cross-validating QR and OCR data"""
+    
     overall_match: bool
     overall_score: float  # 0-1
     field_matches: List[FieldMatch] = field(default_factory=list)
@@ -105,7 +101,7 @@ class CrossValidationResult:
 
 @dataclass
 class ConfidenceScore:
-    """Confidence score with breakdown"""
+    
     total_score: int  # 0-100
     breakdown: Dict[str, int] = field(default_factory=dict)
     penalties: Dict[str, int] = field(default_factory=dict)
@@ -114,7 +110,7 @@ class ConfidenceScore:
 
 @dataclass
 class AadhaarVerificationResult:
-    """Final verification result returned by the system"""
+    
     # Core verification status
     qr_detected: bool = False
     qr_signature_valid: bool = False
@@ -157,7 +153,7 @@ class AadhaarVerificationResult:
     )
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization"""
+        
         result = {
             "qr_detected": self.qr_detected,
             "qr_signature_valid": self.qr_signature_valid,

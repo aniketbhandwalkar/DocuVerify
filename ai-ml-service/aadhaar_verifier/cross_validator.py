@@ -1,9 +1,4 @@
-"""
-Cross-Validator for Aadhaar Verification
 
-Compares QR-extracted data with OCR-extracted data to detect
-inconsistencies and potential tampering.
-"""
 
 import logging
 from typing import Optional
@@ -20,14 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class CrossValidator:
-    """
-    Cross-validates data from QR code against OCR-extracted text.
     
-    This comparison helps detect:
-    - Tampered physical cards (printed text differs from QR)
-    - Photo manipulation (if photo hash differs)
-    - Partial forgeries
-    """
     
     # Thresholds for fuzzy matching
     NAME_MATCH_THRESHOLD = 0.7  # 70% similarity
@@ -38,16 +26,7 @@ class CrossValidator:
         qr_data: Optional[DemographicData], 
         ocr_data: Optional[OCRExtractedData]
     ) -> CrossValidationResult:
-        """
-        Compare QR data against OCR data.
         
-        Args:
-            qr_data: Data extracted from QR code (trusted if signature valid)
-            ocr_data: Data extracted via OCR (untrusted)
-            
-        Returns:
-            CrossValidationResult with match details
-        """
         field_matches = []
         mismatches = []
         warnings = []
@@ -129,7 +108,7 @@ class CrossValidator:
         )
     
     def _compare_names(self, qr_name: Optional[str], ocr_name: Optional[str]) -> FieldMatch:
-        """Compare names using fuzzy matching."""
+        
         if not qr_name or not ocr_name:
             return FieldMatch(
                 field_name="Name",
@@ -168,7 +147,7 @@ class CrossValidator:
         )
     
     def _normalize_name(self, name: str) -> str:
-        """Normalize name for comparison."""
+        
         # Convert to lowercase
         name = name.lower()
         # Remove extra whitespace
@@ -180,7 +159,7 @@ class CrossValidator:
         return name.strip()
     
     def _compare_dates(self, qr_date: Optional[str], ocr_date: Optional[str]) -> FieldMatch:
-        """Compare dates (DOB or YOB)."""
+        
         if not qr_date or not ocr_date:
             return FieldMatch(
                 field_name="DOB/YOB",
@@ -230,20 +209,20 @@ class CrossValidator:
         )
     
     def _normalize_date(self, date: str) -> str:
-        """Normalize date format."""
+        
         import re
         # Remove non-alphanumeric
         date = re.sub(r'[^0-9a-zA-Z]', '', date.lower())
         return date
     
     def _extract_year(self, date: str) -> Optional[str]:
-        """Extract 4-digit year from date string."""
+        
         import re
         match = re.search(r'(19|20)\d{2}', date)
         return match.group(0) if match else None
     
     def _compare_gender(self, qr_gender: Optional[str], ocr_gender: Optional[str]) -> FieldMatch:
-        """Compare gender values."""
+        
         if not qr_gender or not ocr_gender:
             return FieldMatch(
                 field_name="Gender",
@@ -274,7 +253,7 @@ class CrossValidator:
         qr_aadhaar: Optional[str], 
         ocr_aadhaar: Optional[str]
     ) -> FieldMatch:
-        """Compare masked Aadhaar numbers."""
+        
         if not qr_aadhaar or not ocr_aadhaar:
             return FieldMatch(
                 field_name="Masked Aadhaar",

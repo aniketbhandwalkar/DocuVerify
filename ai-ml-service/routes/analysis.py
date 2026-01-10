@@ -122,9 +122,7 @@ async def analyze_document(
         raise HTTPException(status_code=500, detail=f"Document analysis failed: {str(e)}")
 
 def combine_enhanced_analysis_results(features, classification_result, legacy_analysis):
-    """
-    Enhanced combination of ML analysis results with legacy analysis
-    """
+    
     try:
         start_time = datetime.now()
         
@@ -153,7 +151,7 @@ def combine_enhanced_analysis_results(features, classification_result, legacy_an
         is_valid = (
             ml_is_authentic and 
             legacy_valid and 
-            combined_confidence >= 0.7 and
+            combined_confidence >= 0.3 and
             critical_issues == 0
         )
         
@@ -282,7 +280,7 @@ def combine_enhanced_analysis_results(features, classification_result, legacy_an
         }
 
 def calculate_enhanced_quality_score(features, classification_result):
-    """Calculate enhanced quality score based on multiple factors"""
+    
     try:
         quality_factors = []
         
@@ -331,7 +329,7 @@ def calculate_enhanced_quality_score(features, classification_result):
         return 0.5
 
 def extract_enhanced_data(features, classification_result):
-    """Extract enhanced data from features"""
+    
     try:
         extracted_data = {}
         
@@ -399,13 +397,11 @@ def extract_enhanced_data(features, classification_result):
         return {}
 
 def combine_analysis_results(features, classification_result, legacy_analysis):
-    """Legacy function for backward compatibility"""
+    
     return combine_enhanced_analysis_results(features, classification_result, legacy_analysis)
 
 def perform_legacy_analysis(file_location, document_type):
-    """
-    Perform legacy analysis for backward compatibility
-    """
+    
     try:
         # Load and analyze image
         image = cv2.imread(file_location)
@@ -429,9 +425,7 @@ def perform_legacy_analysis(file_location, document_type):
         }
 
 def perform_document_analysis(image, document_type, filename):
-    """
-    Perform comprehensive document analysis with fake detection
-    """
+    
     start_time = datetime.now()
     
     analysis_result = {
@@ -481,9 +475,9 @@ def perform_document_analysis(image, document_type, filename):
         analysis_result["confidence_score"] = confidence_score
         
         # STRICT VALIDATION: Document is only valid if:
-        # 1. High confidence score (>= 0.7)
+        # 1. High confidence score (>= 0.3)
         # 2. No critical anomalies
-        # 3. Good quality score (>= 0.4)
+        # 3. Good quality score (>= 0.3)
         critical_anomalies = [
             "Suspicious filename detected",
             "Suspicious text content detected", 
@@ -499,20 +493,20 @@ def perform_document_analysis(image, document_type, filename):
         
         # Final validation decision
         analysis_result["is_valid"] = (
-            confidence_score >= 0.7 and 
+            confidence_score >= 0.3 and 
             not has_critical_anomalies and 
-            quality_score >= 0.4 and
+            quality_score >= 0.3 and
             len(anomalies) <= 2
         )
         
         # Add detailed reasoning
         if not analysis_result["is_valid"]:
             reasons = []
-            if confidence_score < 0.7:
+            if confidence_score < 0.3:
                 reasons.append(f"Low confidence score: {confidence_score:.2f}")
             if has_critical_anomalies:
                 reasons.append("Critical anomalies detected")
-            if quality_score < 0.4:
+            if quality_score < 0.3:
                 reasons.append(f"Poor image quality: {quality_score:.2f}")
             if len(anomalies) > 2:
                 reasons.append(f"Too many anomalies: {len(anomalies)}")
@@ -530,9 +524,7 @@ def perform_document_analysis(image, document_type, filename):
     return analysis_result
 
 def analyze_image_quality(image):
-    """
-    Analyze image quality metrics
-    """
+    
     try:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
@@ -558,9 +550,7 @@ def analyze_image_quality(image):
         return 0.0
 
 def perform_ocr_analysis(image):
-    """
-    Perform OCR and analyze text quality
-    """
+    
     try:
         # Convert to grayscale for better OCR
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -599,9 +589,7 @@ def perform_ocr_analysis(image):
         }
 
 def calculate_ocr_accuracy(text):
-    """
-    Calculate OCR accuracy based on text characteristics
-    """
+    
     if not text or len(text.strip()) == 0:
         return 0.0
     
@@ -620,9 +608,7 @@ def calculate_ocr_accuracy(text):
     return min(float(accuracy), 1.0)
 
 def detect_signature_presence(image):
-    """
-    Basic signature detection using contour analysis
-    """
+    
     try:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
@@ -646,9 +632,7 @@ def detect_signature_presence(image):
         return False
 
 def validate_document_format(image, document_type):
-    """
-    Validate document format based on type
-    """
+    
     try:
         height, width = image.shape[:2]
         aspect_ratio = float(width) / float(height)
@@ -685,9 +669,7 @@ def validate_document_format(image, document_type):
         return {"dimensions_valid": False, "aspect_ratio_valid": False, "size_score": 0.0}
 
 def detect_anomalies(image, ocr_text, filename):
-    """
-    Advanced anomaly detection for fake document identification
-    """
+    
     anomalies = []
     
     try:
@@ -739,9 +721,7 @@ def detect_anomalies(image, ocr_text, filename):
     return anomalies
 
 def perform_digital_forensics(image):
-    """
-    Perform advanced digital forensics to detect manipulation
-    """
+    
     anomalies = []
     
     try:
@@ -790,9 +770,7 @@ def perform_digital_forensics(image):
     return anomalies
 
 def detect_copy_paste_artifacts(gray):
-    """
-    Detect copy-paste operations by finding repeated patterns
-    """
+    
     try:
         # Divide image into blocks and compare
         h, w = gray.shape
@@ -822,9 +800,7 @@ def detect_copy_paste_artifacts(gray):
         return 0
 
 def analyze_noise_patterns(gray):
-    """
-    Analyze noise patterns for inconsistencies
-    """
+    
     try:
         # Apply Gaussian blur to get noise
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -856,9 +832,7 @@ def analyze_noise_patterns(gray):
         return 0.0
 
 def analyze_font_consistency(image, ocr_text):
-    """
-    Analyze font consistency and detect mixed fonts
-    """
+    
     anomalies = []
     
     try:
@@ -898,9 +872,7 @@ def analyze_font_consistency(image, ocr_text):
     return anomalies
 
 def analyze_color_space(image):
-    """
-    Analyze color space for manipulation indicators
-    """
+    
     anomalies = []
     
     try:
@@ -945,9 +917,7 @@ def analyze_color_space(image):
     return anomalies
 
 def analyze_texture_patterns(image):
-    """
-    Analyze texture patterns for manipulation detection
-    """
+    
     anomalies = []
     
     try:
@@ -989,9 +959,7 @@ def analyze_texture_patterns(image):
     return anomalies
 
 def calculate_lbp(gray):
-    """
-    Calculate simplified Local Binary Pattern
-    """
+    
     try:
         rows, cols = gray.shape
         lbp = np.zeros((rows-2, cols-2), dtype=np.uint8)
@@ -1022,9 +990,7 @@ def calculate_lbp(gray):
         return gray[1:-1, 1:-1]  # Return cropped original
 
 def analyze_document_structure(image, ocr_text):
-    """
-    Analyze document structure for authenticity
-    """
+    
     anomalies = []
     
     try:
@@ -1078,9 +1044,7 @@ def analyze_document_structure(image, ocr_text):
     return anomalies
 
 def calculate_confidence_score(quality_score, ocr_accuracy, signature_detected, format_validation, anomaly_count):
-    """
-    Calculate overall confidence score with strict anomaly penalties
-    """
+    
     # Base score from quality and OCR
     base_score = (float(quality_score) * 0.3 + float(ocr_accuracy) * 0.25)
     

@@ -2,19 +2,12 @@ from PIL import Image, ImageChops
 import numpy as np
 
 class ForensicAnalyzer:
-    """
-    Layer 4: Physical & Digital Forensic Anomaly Detection.
-    No heavy AI, uses traditional signal processing.
-    """
+    
 
     @staticmethod
     def detect_ela(image_path: str, quality: int = 90) -> float:
-        """
-        Error Level Analysis (ELA).
-        Detects if parts of an image have different compression levels (Photoshop).
-        Returns a score: Higher means more likely tampered.
-        """
-        original = Image.open(image_path)
+        
+        original = Image.open(image_path).convert("RGB")
         tmp_path = "tmp_resave.jpg"
         original.save(tmp_path, "JPEG", quality=quality)
         
@@ -32,10 +25,7 @@ class ForensicAnalyzer:
 
     @staticmethod
     def detect_rephotography(image_path: str) -> bool:
-        """
-        Detects 'Moire Patterns' using Fast Fourier Transform.
-        Proof that a photo was taken of a digital screen.
-        """
+        
         # Simplified logic: High frequency noise patterns usually indicate pixels
         img = Image.open(image_path).convert('L')
         img_np = np.array(img)
@@ -44,6 +34,7 @@ class ForensicAnalyzer:
         fshift = np.fft.fftshift(f)
         magnitude_spectrum = 20 * np.log(np.abs(fshift))
         
-        # Heuristic: Screen photos have distinct repetitive peaks in frequency domain
-        # This is a baseline - actual thresholds depend on dataset
-        return np.mean(magnitude_spectrum) > 150 # Dummy threshold
+        # Relaxed threshold: Screen photos have distinct repetitive peaks
+        # 150 was too tight, trying 200.
+        score = np.mean(magnitude_spectrum)
+        return score > 200 

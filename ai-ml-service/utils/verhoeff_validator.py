@@ -1,11 +1,4 @@
-"""
-Verhoeff Checksum Algorithm for Aadhaar Number Validation
 
-The Verhoeff algorithm is a checksum formula for error detection developed by 
-Dutch mathematician Jacobus Verhoeff. It is used by UIDAI for Aadhaar numbers.
-
-This provides mathematical validation to eliminate OCR false positives.
-"""
 
 import logging
 from typing import Optional
@@ -14,9 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class VerhoeffValidator:
-    """
-    Validates Aadhaar numbers using the Verhoeff checksum algorithm
-    """
+    
     
     # Multiplication table (dihedral group D5)
     MULTIPLICATION_TABLE = [
@@ -49,15 +40,7 @@ class VerhoeffValidator:
     
     @classmethod
     def validate(cls, number: str) -> bool:
-        """
-        Validate an Aadhaar number using Verhoeff algorithm
         
-        Args:
-            number: 12-digit Aadhaar number as string (spaces will be removed)
-            
-        Returns:
-            True if valid, False otherwise
-        """
         try:
             # Remove spaces and validate format
             number = number.replace(' ', '').replace('-', '')
@@ -92,15 +75,7 @@ class VerhoeffValidator:
     
     @classmethod
     def _calculate_checksum(cls, digits: list) -> int:
-        """
-        Calculate Verhoeff checksum
         
-        Args:
-            digits: List of integer digits
-            
-        Returns:
-            Checksum value (0 if valid)
-        """
         checksum = 0
         
         # Process each digit from right to left
@@ -116,16 +91,7 @@ class VerhoeffValidator:
     
     @classmethod
     def generate_checksum_digit(cls, number: str) -> Optional[str]:
-        """
-        Generate the checksum digit for an 11-digit number
-        Useful for testing or generating valid Aadhaar numbers
         
-        Args:
-            number: 11-digit number as string
-            
-        Returns:
-            Complete 12-digit number with checksum, or None if invalid
-        """
         try:
             # Validate input
             number = number.replace(' ', '').replace('-', '')
@@ -150,15 +116,7 @@ class VerhoeffValidator:
     
     @classmethod
     def format_aadhaar(cls, number: str) -> str:
-        """
-        Format Aadhaar number with standard spacing (XXXX XXXX XXXX)
         
-        Args:
-            number: 12-digit Aadhaar number (with or without spaces)
-            
-        Returns:
-            Formatted Aadhaar number
-        """
         # Remove existing spaces/separators
         clean = number.replace(' ', '').replace('-', '')
         
@@ -170,16 +128,7 @@ class VerhoeffValidator:
     
     @classmethod
     def mask_aadhaar(cls, number: str, show_last: int = 4) -> str:
-        """
-        Mask Aadhaar number for display (e.g., XXXX XXXX 1234)
         
-        Args:
-            number: 12-digit Aadhaar number
-            show_last: Number of digits to show at the end (default 4)
-            
-        Returns:
-            Masked Aadhaar number
-        """
         clean = number.replace(' ', '').replace('-', '')
         
         if len(clean) != 12:
@@ -194,44 +143,19 @@ class VerhoeffValidator:
 
 # Convenience function for direct validation
 def validate_aadhaar(number: str) -> bool:
-    """
-    Validate an Aadhaar number
     
-    Args:
-        number: 12-digit Aadhaar number (spaces will be removed)
-        
-    Returns:
-        True if valid per Verhoeff algorithm, False otherwise
-    """
     return VerhoeffValidator.validate(number)
 
 
 # Convenience function for formatting
 def format_aadhaar(number: str) -> str:
-    """
-    Format Aadhaar number with standard spacing
     
-    Args:
-        number: 12-digit Aadhaar number
-        
-    Returns:
-        Formatted number (XXXX XXXX XXXX)
-    """
     return VerhoeffValidator.format_aadhaar(number)
 
 
 # Convenience function for masking
 def mask_aadhaar(number: str, show_last: int = 4) -> str:
-    """
-    Mask Aadhaar number for display
     
-    Args:
-        number: 12-digit Aadhaar number
-        show_last: Number of digits to show (default 4)
-        
-    Returns:
-        Masked number (XXXX XXXX 1234)
-    """
     return VerhoeffValidator.mask_aadhaar(number, show_last)
 
 

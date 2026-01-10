@@ -6,9 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def preprocess_image(image, enhancement_type="default"):
-    """
-    Preprocess image for better analysis results
-    """
+    
     try:
         if isinstance(image, Image.Image):
             image = np.array(image)
@@ -27,9 +25,7 @@ def preprocess_image(image, enhancement_type="default"):
         return image
 
 def preprocess_for_ocr(image):
-    """
-    Preprocess image specifically for OCR
-    """
+    
     try:
         # Convert to grayscale
         if len(image.shape) == 3:
@@ -58,9 +54,7 @@ def preprocess_for_ocr(image):
         return image
 
 def preprocess_for_signature(image):
-    """
-    Preprocess image specifically for signature detection
-    """
+    
     try:
         # Convert to grayscale
         if len(image.shape) == 3:
@@ -87,9 +81,7 @@ def preprocess_for_signature(image):
         return image
 
 def enhance_image_quality(image):
-    """
-    Enhance overall image quality
-    """
+    
     try:
         # Convert numpy array to PIL Image
         if isinstance(image, np.ndarray):
@@ -113,9 +105,7 @@ def enhance_image_quality(image):
         return image
 
 def default_preprocessing(image):
-    """
-    Default preprocessing pipeline
-    """
+    
     try:
         # Basic noise removal
         if len(image.shape) == 3:
@@ -146,9 +136,7 @@ def default_preprocessing(image):
         return image
 
 def resize_image(image, max_width=1200, max_height=1600):
-    """
-    Resize image while maintaining aspect ratio
-    """
+    
     try:
         if isinstance(image, np.ndarray):
             height, width = image.shape[:2]
@@ -178,9 +166,7 @@ def resize_image(image, max_width=1200, max_height=1600):
         return image
 
 def normalize_image(image):
-    """
-    Normalize image values
-    """
+    
     try:
         if isinstance(image, np.ndarray):
             if image.dtype != np.uint8:
@@ -195,9 +181,7 @@ def normalize_image(image):
         return image
 
 def detect_image_orientation(image):
-    """
-    Detect and correct image orientation
-    """
+    
     try:
         # Convert to grayscale
         if len(image.shape) == 3:
@@ -231,9 +215,7 @@ def detect_image_orientation(image):
         return "no_rotation"
 
 def correct_image_orientation(image, orientation):
-    """
-    Correct image orientation
-    """
+    
     try:
         if orientation == "rotate_90":
             return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
@@ -249,9 +231,7 @@ def correct_image_orientation(image, orientation):
         return image
 
 def extract_text_regions(image):
-    """
-    Extract text regions from image
-    """
+    
     try:
         # Convert to grayscale if needed
         if len(image.shape) == 3:
@@ -295,9 +275,7 @@ def extract_text_regions(image):
         return []
 
 def extract_photo_regions(image):
-    """
-    Extract photo regions from image
-    """
+    
     try:
         # Convert to grayscale if needed
         if len(image.shape) == 3:

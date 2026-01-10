@@ -12,21 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConfidenceScorer:
-    """
-    New Scoring Formula:
-    Confidence = (
-        OCR_Confidence * 0.30 +
-        Checksum_Valid * 0.25 +
-        Format_Match * 0.15 +
-        Field_Completeness * 0.15 +
-        Text_Quality * 0.15
-    ) * 100
     
-    Scoring Tiers:
-    - 80-100%: High confidence (Aadhaar number + checksum valid)
-    - 60-79%: Medium (Number extracted but checksum fails OR partial data)
-    - 40-59%: Low (OCR succeeded but data incomplete)
-    - 0-39%: Very Low (Poor OCR, no number extracted)    """
     
     # Weights for new scoring algorithm
     WEIGHTS = {
@@ -49,16 +35,7 @@ class ConfidenceScorer:
         ocr_result: Dict[str, Any],
         text_quality_metrics: Optional[Dict[str, float]] = None
     ) -> ConfidenceScore:
-        """
-        Calculate confidence score based on OCR extraction results
         
-        Args:
-            ocr_result: Result from AadhaarOCRExtractor.extract_aadhaar_data()
-            text_quality_metrics: Optional text quality metrics
-            
-        Returns:
-            ConfidenceScore with breakdown
-        """
         breakdown = {}
         score = 0.0
         
@@ -92,8 +69,7 @@ class ConfidenceScorer:
             quality_score = ocr_conf * self.WEIGHTS['text_quality'] * 100
         score += quality_score
         breakdown['Text Quality'] = round(quality_score, 2)
-        
-        # Ensure score is in valid range
+        qa
         score = max(0, min(100, score))
         
         # Generate explanation
@@ -115,20 +91,7 @@ class ConfidenceScorer:
         cross_validation: Optional[CrossValidationResult],
         ocr_result: Optional[Dict[str, Any]] = None
     ) -> ConfidenceScore:
-        """
-        Unified confidence calculation (supports both QR and OCR paths)
         
-        Args:
-            qr_detected: Whether QR code was detected
-            qr_data: Parsed QR data (if available)
-            signature_result: Result of signature verification
-            ocr_extracted: Whether OCR extraction succeeded
-            cross_validation: Result of cross-validation
-            ocr_result: OCR extraction result (new parameter)
-            
-        Returns:
-            ConfidenceScore with breakdown
-        """
         # If we have OCR results, use new algorithm
         if ocr_result:
             base_score = self.calculate_ocr_based(ocr_result)
@@ -157,15 +120,7 @@ class ConfidenceScorer:
         )
     
     def _calculate_format_score(self, ocr_result: Dict[str, Any]) -> float:
-        """
-        Calculate format matching score based on extracted patterns
         
-        Args:
-            ocr_result: OCR extraction result
-            
-        Returns:
-            Format score (0-15)
-        """
         max_score = self.WEIGHTS['format_match'] * 100
         score = 0.0
         
@@ -208,15 +163,7 @@ class ConfidenceScorer:
         return score
     
     def _calculate_completeness_score(self, ocr_result: Dict[str, Any]) -> float:
-        """
-        Calculate field completeness score
         
-        Args:
-            ocr_result: OCR extraction result
-            
-        Returns:
-            Completeness score (0-15)
-        """
         max_score = self.WEIGHTS['field_completeness'] * 100
         
         extracted_count = 0
@@ -231,15 +178,7 @@ class ConfidenceScorer:
         return score
     
     def _calculate_text_quality_score(self, metrics: Dict[str, float]) -> float:
-        """
-        Calculate text quality score from character analysis
         
-        Args:
-            metrics: Text quality metrics (alpha_ratio, digit_ratio, etc.)
-            
-        Returns:
-            Quality score (0-15)
-        """
         max_score = self.WEIGHTS['text_quality'] * 100
         
         # Expected ratios for Aadhaar cards
@@ -260,7 +199,7 @@ class ConfidenceScorer:
         breakdown: dict,
         checksum_valid: bool
     ) -> str:
-        """Generate explanation for new scoring algorithm"""
+        
         parts = []
         
         # Overall assessment
@@ -268,8 +207,8 @@ class ConfidenceScorer:
             parts.append("HIGH CONFIDENCE: Aadhaar number validated with strong OCR.")
         elif score >= 60:
             parts.append("MEDIUM CONFIDENCE: Good OCR extraction with some validation.")
-        elif score >= 40:
-            parts.append("LOW CONFIDENCE: OCR succeeded but data incomplete or unvalidated.")
+        elif score >= 30:
+            parts.append("LOW-MEDIUM CONFIDENCE: OCR extraction successful but validation limited.")
         else:
             parts.append("VERY LOW CONFIDENCE: Poor OCR quality or critical data missing.")
         
@@ -295,11 +234,7 @@ class ConfidenceScorer:
         ocr_extracted: bool,
         cross_validation: Optional[CrossValidationResult]
     ) -> ConfidenceScore:
-        """
-        DEPRECATED: Legacy calculation for backward compatibility only.
-        Use calculate_ocr_based() for new implementations.
-        This method is kept to support old code paths where OCR result is not available.
-        """
+        
         logger.warning("Using deprecated legacy scoring algorithm. Consider using OCR-based scoring.")
         score = 0
         breakdown = {}
@@ -351,7 +286,7 @@ class ConfidenceScorer:
         )
     
     def _generate_explanation_legacy(self, score: int, breakdown: dict) -> str:
-        """Generate explanation for legacy algorithm"""
+        
         if score >= 70:
             return "GOOD CONFIDENCE: Most verification checks passed."
         elif score >= 50:
@@ -362,14 +297,14 @@ class ConfidenceScorer:
             return "VERY LOW CONFIDENCE: Verification largely failed."
     
     def get_verdict(self, score: int) -> str:
-        """Get verification verdict based on score"""
-        if score >= 22:
+        
+        if score >= 30:
             return "accepted"
         else:
             return "rejected"
     
     def get_verdict_description(self, verdict: str) -> str:
-        """Get description for verdict"""
+        
         descriptions = {
             "accepted": "The Aadhaar card has been verified and accepted.",
             "rejected": "The Aadhaar card failed verification checks and has been rejected."

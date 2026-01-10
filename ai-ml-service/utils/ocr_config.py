@@ -1,9 +1,4 @@
-"""
-Unified OCR Configuration and Management
 
-This module provides a centralized OCR configuration system to manage
-multiple OCR engines (Tesseract, EasyOCR) with proper fallback mechanisms.
-"""
 
 import os
 import platform
@@ -15,22 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 class OCREngine(Enum):
-    """Available OCR engines"""
+    
     TESSERACT = "tesseract"
     EASYOCR = "easyocr"
     HYBRID = "hybrid"  # Uses Tesseract for numbers, EasyOCR for general text
 
 
 class OCRConfig:
-    """
-    Centralized OCR configuration manager
     
-    Features:
-    - Automatic Tesseract path detection
-    - EasyOCR initialization with fallback
-    - Environment variable support
-    - Health checking for OCR engines
-    """
     
     def __init__(self):
         self.tesseract_available = False
@@ -42,7 +29,7 @@ class OCRConfig:
         self._configure_easyocr()
         
     def _configure_tesseract(self) -> bool:
-        """Configure Tesseract OCR with platform-specific handling"""
+        
         try:
             import pytesseract
             
@@ -95,7 +82,7 @@ class OCRConfig:
             return False
     
     def _configure_easyocr(self) -> bool:
-        """Configure EasyOCR with lazy initialization"""
+        
         try:
             import easyocr
             logger.info("EasyOCR available (will be initialized on first use)")
@@ -106,7 +93,7 @@ class OCRConfig:
             return False
     
     def get_available_engines(self) -> List[str]:
-        """Get list of available OCR engines"""
+        
         engines = []
         if self.tesseract_available:
             engines.append(OCREngine.TESSERACT.value)
@@ -115,7 +102,7 @@ class OCRConfig:
         return engines
     
     def get_recommended_engine(self) -> str:
-        """Get recommended OCR engine based on availability"""
+        
         # Tesseract is faster, prefer it if available
         if self.tesseract_available:
             return OCREngine.TESSERACT.value
@@ -128,7 +115,7 @@ class OCRConfig:
             )
     
     def health_check(self) -> Dict[str, bool]:
-        """Check health of all OCR engines"""
+        
         return {
             "tesseract": self.tesseract_available,
             "easyocr": self.easyocr_available,
@@ -141,7 +128,7 @@ _ocr_config = None
 
 
 def get_ocr_config() -> OCRConfig:
-    """Get or create global OCR configuration"""
+    
     global _ocr_config
     if _ocr_config is None:
         _ocr_config = OCRConfig()
@@ -149,15 +136,15 @@ def get_ocr_config() -> OCRConfig:
 
 
 def get_available_ocr_engines() -> List[str]:
-    """Get list of available OCR engines"""
+    
     return get_ocr_config().get_available_engines()
 
 
 def get_recommended_ocr_engine() -> str:
-    """Get recommended OCR engine"""
+    
     return get_ocr_config().get_recommended_engine()
 
 
 def ocr_health_check() -> Dict[str, bool]:
-    """Get OCR health check information"""
+    
     return get_ocr_config().health_check()

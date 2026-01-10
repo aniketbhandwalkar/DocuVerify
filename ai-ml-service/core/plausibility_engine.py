@@ -5,10 +5,7 @@ from typing import Dict, Any, Tuple
 logger = logging.getLogger(__name__)
 
 class VerhoeffValidator:
-    """
-    Layer 1: Structural Integrity.
-    Verhoeff Checksum - The standard for Aadhaar number validation.
-    """
+    
     _table_d = [
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
         [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
@@ -37,7 +34,7 @@ class VerhoeffValidator:
 
     @classmethod
     def validate(cls, number: str) -> bool:
-        """Validate an Aadhaar number using Verhoeff algorithm"""
+        
         if not number or len(number) != 12 or not number.isdigit():
             return False
             
@@ -53,7 +50,7 @@ class PlausibilityEngine:
         self.findings = []
 
     def assess_aadhaar_number(self, number: str) -> Tuple[int, str]:
-        """Layer 1 Check"""
+        
         is_valid = self.verhoeff.validate(number)
         if is_valid:
             return 20, "Aadhaar number format and checksum are valid."

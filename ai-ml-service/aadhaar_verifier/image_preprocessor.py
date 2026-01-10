@@ -1,9 +1,4 @@
-"""
-Image Preprocessor for Aadhaar Verification
 
-Handles image enhancement, rotation correction, contrast adjustment,
-and region detection for optimal QR and OCR processing.
-"""
 
 import cv2
 import numpy as np
@@ -18,24 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class ImagePreprocessor:
-    """
-    Preprocesses Aadhaar card images for optimal QR detection and OCR extraction.
-    """
+    
     
     def __init__(self):
         self.target_width = 1200
         self.target_height = 800
     
     def preprocess(self, image_input: Union[str, bytes, np.ndarray]) -> PreprocessedImage:
-        """
-        Main preprocessing pipeline for Aadhaar card images.
         
-        Args:
-            image_input: File path, bytes, or numpy array
-            
-        Returns:
-            PreprocessedImage with processed image and metadata
-        """
         notes = []
         original_path = ""
         
@@ -57,6 +42,13 @@ class ImagePreprocessor:
             notes.append("Loaded from numpy array")
         else:
             raise ValueError(f"Unsupported input type: {type(image_input)}")
+        
+        # Step 0: Ensure landscape orientation (Aadhaar cards are landscape)
+        h, w = image.shape[:2]
+        if h > w:
+            logger.info("Image is portrait, rotating to landscape")
+            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+            notes.append("Rotated from portrait to landscape")
         
         # Store original dimensions
         original_height, original_width = image.shape[:2]
@@ -104,7 +96,7 @@ class ImagePreprocessor:
         )
     
     def _resize_if_needed(self, image: np.ndarray) -> Tuple[np.ndarray, bool]:
-        """Resize image if it's too large while maintaining aspect ratio."""
+        
         height, width = image.shape[:2]
         
         if width <= self.target_width and height <= self.target_height:
@@ -122,7 +114,7 @@ class ImagePreprocessor:
         return resized, True
     
     def _correct_rotation(self, image: np.ndarray) -> Tuple[np.ndarray, float]:
-        """Detect and correct image rotation using edge detection."""
+        
         try:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             edges = cv2.Canny(gray, 50, 150, apertureSize=3)
@@ -167,7 +159,7 @@ class ImagePreprocessor:
             return image, 0.0
     
     def _enhance_contrast(self, image: np.ndarray) -> Tuple[np.ndarray, bool]:
-        """Enhance image contrast using CLAHE."""
+        
         try:
             # Convert to LAB color space
             lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
@@ -188,7 +180,7 @@ class ImagePreprocessor:
             return image, False
     
     def _reduce_blur(self, image: np.ndarray) -> Tuple[np.ndarray, bool]:
-        """Apply sharpening to reduce blur."""
+        
         try:
             # Calculate blur metric using Laplacian variance
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -209,7 +201,7 @@ class ImagePreprocessor:
             return image, False
     
     def _detect_qr_region(self, image: np.ndarray) -> Optional[Tuple[int, int, int, int]]:
-        """Detect the QR code region in the image."""
+        
         try:
             # Try OpenCV QR detector
             detector = cv2.QRCodeDetector()
@@ -247,7 +239,7 @@ class ImagePreprocessor:
             return None
     
     def _detect_text_regions(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
-        """Detect text regions in the image using morphological operations."""
+        
         try:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
@@ -286,7 +278,7 @@ class ImagePreprocessor:
     
     def get_qr_cropped(self, image: np.ndarray, region: Tuple[int, int, int, int], 
                         padding: int = 10) -> np.ndarray:
-        """Extract QR region from image with padding."""
+        
         x, y, w, h = region
         height, width = image.shape[:2]
         
@@ -298,7 +290,7 @@ class ImagePreprocessor:
         return image[y1:y2, x1:x2]
     
     def prepare_for_ocr(self, image: np.ndarray) -> np.ndarray:
-        """Prepare image specifically for OCR processing."""
+        
         # Convert to grayscale
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

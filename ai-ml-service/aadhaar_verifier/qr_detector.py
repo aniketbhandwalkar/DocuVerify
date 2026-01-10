@@ -1,9 +1,4 @@
-"""
-QR Code Detector and Decoder for Aadhaar Cards
 
-Handles detection and decoding of both Secure QR (V2) and Old XML-based QR codes.
-Extracts embedded demographic data from Aadhaar QR codes.
-"""
 
 import cv2
 import numpy as np
@@ -29,10 +24,7 @@ logger.warning("pyaadhaar disabled (depends on pyzbar) - using manual parsing")
 
 
 class QRDetector:
-    """
-    Detects and decodes Aadhaar QR codes from images.
-    Supports both Secure QR (V2) and legacy XML-based QR codes.
-    """
+    
     
     # Secure QR V2 structure constants
     SIGNATURE_LENGTH = 256  # 2048-bit RSA signature
@@ -42,15 +34,7 @@ class QRDetector:
         self.cv_detector = cv2.QRCodeDetector()
     
     def detect_and_decode(self, image: np.ndarray) -> Tuple[Optional[DemographicData], bytes]:
-        """
-        Detect and decode QR code from image.
         
-        Args:
-            image: Preprocessed image (numpy array)
-            
-        Returns:
-            Tuple of (DemographicData or None, raw_qr_bytes)
-        """
         raw_data = b""
         
         # Strategy 1: Try OpenCV detector first (no DLL dependencies)
@@ -73,7 +57,7 @@ class QRDetector:
         return None, b""
     
     def _detect_with_pyzbar(self, image: np.ndarray) -> Tuple[Optional[DemographicData], bytes]:
-        """Detect QR using pyzbar library."""
+        
         try:
             # Convert to grayscale if needed
             if len(image.shape) == 3:
@@ -99,7 +83,7 @@ class QRDetector:
             return None, b""
     
     def _detect_with_opencv(self, image: np.ndarray) -> Tuple[Optional[DemographicData], bytes]:
-        """Detect QR using OpenCV detector with enhanced preprocessing."""
+        
         try:
             # Convert to grayscale if needed
             if len(image.shape) == 3:
@@ -107,69 +91,93 @@ class QRDetector:
             else:
                 gray = image.copy()
             
-            # Try original image first
-            data, points, straight_qr = self.cv_detector.detectAndDecode(image)
-            
-            if data:
-                logger.info(f"OpenCV detected QR code (original), data length: {len(data)}")
-                raw_data = data.encode('utf-8') if isinstance(data, str) else data
-                demographic_data = self._parse_qr_data(raw_data)
-                if demographic_data:
-                    return demographic_data, raw_data
-            
-            # Try with grayscale
-            data, points, straight_qr = self.cv_detector.detectAndDecode(gray)
-            if data:
-                logger.info(f"OpenCV detected QR code (grayscale), data length: {len(data)}")
-                raw_data = data.encode('utf-8') if isinstance(data, str) else data
-                demographic_data = self._parse_qr_data(raw_data)
-                if demographic_data:
-                    return demographic_data, raw_data
-            
-            # Try with enhanced contrast (CLAHE)
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-            enhanced = clahe.apply(gray)
-            data, points, straight_qr = self.cv_detector.detectAndDecode(enhanced)
-            if data:
-                logger.info(f"OpenCV detected QR code (CLAHE enhanced), data length: {len(data)}")
-                raw_data = data.encode('utf-8') if isinstance(data, str) else data
-                demographic_data = self._parse_qr_data(raw_data)
-                if demographic_data:
-                    return demographic_data, raw_data
-            
-            # Try with sharpening
-            kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-            sharpened = cv2.filter2D(gray, -1, kernel)
-            data, points, straight_qr = self.cv_detector.detectAndDecode(sharpened)
-            if data:
-                logger.info(f"OpenCV detected QR code (sharpened), data length: {len(data)}")
-                raw_data = data.encode('utf-8') if isinstance(data, str) else data
-                demographic_data = self._parse_qr_data(raw_data)
-                if demographic_data:
-                    return demographic_data, raw_data
-            
-            # Try with increased size (upscale for small QR codes)
-            h, w = gray.shape[:2]
-            if w < 800:
-                scale = 800 / w
-                upscaled = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-                data, points, straight_qr = self.cv_detector.detectAndDecode(upscaled)
+            # Try rotations: 0, 90, 180, 270
+            for angle in [0, 90, 180, 270]:
+                if angle == 0:
+                    rotated = gray
+                else:
+                    # Rotate image
+                    (h, w) = gray.shape[:2]
+                    center = (w // 2, h // 2)
+                    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+                    rotated = cv2.warpAffine(gray, M, (w, h))
+                
+                # Try original rotated image
+                data, points, straight_qr = self.cv_detector.detectAndDecode(rotated)
                 if data:
-                    logger.info(f"OpenCV detected QR code (upscaled), data length: {len(data)}")
+                    logger.info(f"OpenCV detected QR code at {angle} degrees")
                     raw_data = data.encode('utf-8') if isinstance(data, str) else data
                     demographic_data = self._parse_qr_data(raw_data)
                     if demographic_data:
                         return demographic_data, raw_data
-            
-            logger.info("OpenCV QR detection: No QR code found after all preprocessing attempts")
+                
+                # Try with advanced thresholding
+                advanced_res, advanced_data = self._detect_with_advanced_thresholding(rotated)
+                if advanced_res:
+                    logger.info(f"OpenCV detected QR code with Advanced Threshold at {angle} degrees")
+                    return advanced_res, advanced_data
+
+                # Try with enhanced contrast (CLAHE) on rotated image
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                enhanced = clahe.apply(rotated)
+                data, points, straight_qr = self.cv_detector.detectAndDecode(enhanced)
+                if data:
+                    logger.info(f"OpenCV detected QR code with CLAHE at {angle} degrees")
+                    raw_data = data.encode('utf-8') if isinstance(data, str) else data
+                    demographic_data = self._parse_qr_data(raw_data)
+                    if demographic_data:
+                        return demographic_data, raw_data
+                
+                # Try with sharpening on rotated image
+                kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+                sharpened = cv2.filter2D(enhanced, -1, kernel)
+                data, points, straight_qr = self.cv_detector.detectAndDecode(sharpened)
+                if data:
+                    logger.info(f"OpenCV detected QR code with Sharpening at {angle} degrees")
+                    raw_data = data.encode('utf-8') if isinstance(data, str) else data
+                    demographic_data = self._parse_qr_data(raw_data)
+                    if demographic_data:
+                        return demographic_data, raw_data
+
+            logger.info("OpenCV QR detection: No QR code found after all rotation and preprocessing attempts")
             return None, b""
             
         except Exception as e:
             logger.warning(f"OpenCV detection failed: {e}")
             return None, b""
+
+    def _detect_with_advanced_thresholding(self, image: np.ndarray) -> Tuple[Optional[DemographicData], bytes]:
+        
+        # 1. Adaptive Thresholding (Gaussian)
+        thresh1 = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        data, _, _ = self.cv_detector.detectAndDecode(thresh1)
+        if data:
+            raw_data = data.encode('utf-8') if isinstance(data, str) else data
+            dem = self._parse_qr_data(raw_data)
+            if dem: return dem, raw_data
+            
+        # 2. Otsu's Thresholding
+        _, thresh2 = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        data, _, _ = self.cv_detector.detectAndDecode(thresh2)
+        if data:
+            raw_data = data.encode('utf-8') if isinstance(data, str) else data
+            dem = self._parse_qr_data(raw_data)
+            if dem: return dem, raw_data
+            
+        # 3. Morphological Opening (remove noise) then Otsu
+        kernel = np.ones((3,3), np.uint8)
+        opening = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+        _, thresh3 = cv2.threshold(opening, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        data, _, _ = self.cv_detector.detectAndDecode(thresh3)
+        if data:
+            raw_data = data.encode('utf-8') if isinstance(data, str) else data
+            dem = self._parse_qr_data(raw_data)
+            if dem: return dem, raw_data
+            
+        return None, b""
     
     def _detect_with_preprocessing(self, image: np.ndarray) -> Tuple[Optional[DemographicData], bytes]:
-        """Try detection with additional preprocessing steps."""
+        
         try:
             if len(image.shape) == 3:
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -214,10 +222,7 @@ class QRDetector:
             return None, b""
     
     def _parse_qr_data(self, raw_data: Union[bytes, str]) -> Optional[DemographicData]:
-        """
-        Parse QR data and extract demographic information.
-        Handles both Secure QR (V2) and Old XML QR formats.
-        """
+        
         if isinstance(raw_data, str):
             raw_data = raw_data.encode('utf-8')
         
@@ -240,18 +245,7 @@ class QRDetector:
         return None
     
     def _parse_secure_qr_v2(self, numeric_string: str) -> Optional[DemographicData]:
-        """
-        Parse Secure QR V2 format (large numeric string).
         
-        The Secure QR contains:
-        - Reference ID
-        - Name
-        - DOB/YOB
-        - Gender
-        - Address components
-        - Photo (base64)
-        - Digital signature
-        """
         try:
             # Use pyaadhaar if available
             if PYAADHAAR_AVAILABLE:
@@ -284,13 +278,7 @@ class QRDetector:
             return None
     
     def _manual_parse_secure_qr(self, numeric_string: str) -> Optional[DemographicData]:
-        """
-        Manual parsing of Secure QR when pyaadhaar is not available.
-        The secure QR is a big integer that, when converted to bytes, contains:
-        - Byte 0: Version/email-mobile flags
-        - Bytes 1-256: Digital signature (256 bytes)
-        - Remaining: zlib-compressed data
-        """
+        
         try:
             # Convert numeric string to bytes
             big_int = int(numeric_string)
@@ -341,7 +329,7 @@ class QRDetector:
             return None
     
     def _parse_secure_qr_bytes(self, raw_bytes: bytes) -> Optional[DemographicData]:
-        """Parse Secure QR from raw bytes (already decoded from QR)."""
+        
         try:
             if len(raw_bytes) < 260:
                 return None
@@ -376,7 +364,7 @@ class QRDetector:
             return None
     
     def _parse_old_xml_qr(self, xml_string: str) -> Optional[DemographicData]:
-        """Parse old XML-based QR code format."""
+        
         try:
             # Use pyaadhaar if available
             if PYAADHAAR_AVAILABLE:
@@ -423,7 +411,7 @@ class QRDetector:
             return None
     
     def _normalize_gender(self, gender: str) -> str:
-        """Normalize gender string to M/F/O."""
+        
         if not gender:
             return "U"
         
@@ -439,7 +427,7 @@ class QRDetector:
         return gender.upper()[0] if gender else "U"
     
     def _format_masked_aadhaar(self, uid: str) -> Optional[str]:
-        """Format UID as masked Aadhaar (XXXX-XXXX-1234)."""
+        
         if not uid:
             return None
         
@@ -456,7 +444,7 @@ class QRDetector:
         return None
     
     def _build_address(self, decoded: dict) -> str:
-        """Build address string from decoded parts."""
+        
         address_parts = []
         
         for key in ['co', 'house', 'street', 'lm', 'loc', 'vtc', 'subdist', 'dist', 'state', 'pc']:
@@ -466,7 +454,7 @@ class QRDetector:
         return ', '.join(address_parts) if address_parts else ''
     
     def extract_signature_bytes(self, raw_data: Union[bytes, str]) -> Optional[bytes]:
-        """Extract the digital signature bytes from QR data."""
+        
         try:
             if isinstance(raw_data, str):
                 if raw_data.isdigit():
@@ -488,7 +476,7 @@ class QRDetector:
             return None
     
     def extract_signed_data(self, raw_data: Union[bytes, str]) -> Optional[bytes]:
-        """Extract the data that was signed (for verification)."""
+        
         try:
             if isinstance(raw_data, str):
                 if raw_data.isdigit():

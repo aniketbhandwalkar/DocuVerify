@@ -1,13 +1,4 @@
-"""
-Aadhaar Data Extraction using EasyOCR
-with Rule-Based Pattern Matching and Validation
 
-This module handles:
-- EasyOCR with deep learning for Aadhaar cards
-- Rule-based extraction of Aadhaar numbers using regex patterns
-- Name, DOB, Gender extraction with position heuristics
-- Verhoeff checksum validation to eliminate false positives
-"""
 
 import cv2
 import numpy as np
@@ -27,7 +18,7 @@ logger = logging.getLogger(__name__)
 _easyocr_reader = None
 
 def get_easyocr_reader():
-    """Get or initialize EasyOCR reader"""
+    
     global _easyocr_reader
     if _easyocr_reader is None:
         logger.info("Initializing EasyOCR reader...")
@@ -37,37 +28,35 @@ def get_easyocr_reader():
 
 
 class AadhaarOCRExtractor:
-    """
-    Optimized OCR extraction for Aadhaar cards
-    Uses EasyOCR with deep learning (90-98% accuracy)
-    """
+    
     
     # Regex patterns for Aadhaar number extraction (priority order)
     AADHAAR_PATTERNS = [
-        r'\b(\d{4})\s+(\d{4})\s+(\d{4})\b',  # "1234 5678 9012" (most common)
+        # Look for 12 digits with spaces (must be exactly 12 total digits if separated by spaces)
+        r'\b(\d{4})\s+(\d{4})\s+(\d{4})\b',  # "1234 5678 9012"
+        # Avoid picking up VID (16 digits)
+        r'(?<!VID[:\s])\b(\d{12})\b',  # 12 digits not preceded by VID
         r'\b(\d{4})\s*-\s*(\d{4})\s*-\s*(\d{4})\b',  # "1234-5678-9012"
-        r'\b(\d{12})\b',  # "123456789012" (no spaces)
         r'(\d{4})[\s\-]?(\d{4})[\s\-]?(\d{4})',  # Flexible separator
     ]
     
     # DOB patterns
     DOB_PATTERNS = [
-        r'\b(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})\b',  # DD/MM/YYYY or DD-MM-YYYY
+        r'\b(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})\b',  # DD/MM/YYYY
         r'\b(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})\b',  # YYYY/MM/DD
-        r'DOB[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})',  # "DOB: DD/MM/YYYY"
-        r'Year\s+of\s+Birth[:\s]*(\d{4})',  # "Year of Birth: YYYY"
-        r'YOB[:\s]*(\d{4})',  # "YOB: YYYY"
+        r'(?:DOB|जन्म तिथि|Year of Birth)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})',
+        r'(?:DOB|जन्म तिथि|Year of Birth)[:\s]*(\d{4})',
     ]
     
     # Gender patterns
     GENDER_PATTERNS = [
-        r'\b(MALE|FEMALE)\b',
-        r'\b(M|F)\b(?!\w)',  # M or F not followed by word char
-        r'(पुरुष|महिला)',  # Hindi: Male/Female
+        r'\b(MALE|FEMALE|TRANSGENDER)\b',
+        r'\b(M|F|T)\b(?!\w)',
+        r'(पुरुष|महिला|अन्य)',  # Hindi: Male/Female/Other
     ]
     
     def __init__(self):
-        """Initialize the OCR extractor"""
+        
         self.preprocessor = AadhaarPreprocessor()
         logger.info("AadhaarOCRExtractor initialized")
     
@@ -76,97 +65,15 @@ class AadhaarOCRExtractor:
         image: np.ndarray,
         preprocess: bool = True
     ) -> Dict[str, Any]:
-        """
-        Main extraction pipeline for Aadhaar card data
         
-        Args:
-            image: Input image (BGR from cv2.imread)
-            preprocess: Whether to apply preprocessing (default True)
-            
-        Returns:
-            Dictionary with extracted data and confidence scores
-        """
         try:
             start_time = datetime.now()
             
-            # Step 1: Preprocess image if requested
-            if preprocess:
-                processed_image, preprocess_info = self.preprocessor.preprocess_for_aadhaar_ocr(
-                    image, 
-                    enhance_numbers=True
-                )
-            else:
-                processed_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
-                preprocess_info = {'steps_applied': []}
+            # Step 2-4: Run extraction with fallback rotations
+            result = self._extract_with_rotation_fallback(image, preprocess)
             
-            # Step 2: Extract text using EasyOCR
-            full_text, full_confidence = self._extract_text_with_confidence(
-                processed_image, 
-                extract_numeric_only=False
-            )
-            
-            # Step 3: Extract numeric text (optimized for Aadhaar number)
-            numeric_text, numeric_confidence = self._extract_text_with_confidence(
-                processed_image,
-                extract_numeric_only=True
-            )
-            
-            # Console logging - PRINT OCR RESULTS
-            print(f"\n{'='*60}")
-            print(f"[AADHAAR OCR EXTRACTION]")
-            print(f"{'='*60}")
-            print(f"Full Text Extracted: {full_text[:200]}")
-            print(f"Numeric Text: {numeric_text[:100]}")
-            print(f"Full Text Confidence: {full_confidence:.2%}")
-            print(f"Numeric Confidence: {numeric_confidence:.2%}")
-            print(f"Text Length: {len(full_text)} characters")
-            print(f"{'='*60}\n")
-            
-            # Step 4: Rule-based extraction
-            aadhaar_number = self._extract_aadhaar_number(full_text, numeric_text)
-            dob = self._extract_dob(full_text)
-            gender = self._extract_gender(full_text)
-            name = self._extract_name(full_text)
-            
-            # Step 5: Validate Aadhaar number with Verhoeff checksum
-            aadhaar_valid = False
-            if aadhaar_number:
-                aadhaar_valid = validate_aadhaar(aadhaar_number)
-                if aadhaar_valid:
-                    aadhaar_number = format_aadhaar(aadhaar_number)
-            
-            # Step 6: Calculate processing time
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
-            
-            # Compile results
-            result = {
-                'success': True,
-                'aadhaar_number': aadhaar_number if aadhaar_valid else None,
-                'aadhaar_valid': aadhaar_valid,
-                'aadhaar_masked': mask_aadhaar(aadhaar_number) if aadhaar_number else None,
-                'name': name,
-                'dob': dob,
-                'gender': gender,
-                'full_text': full_text[:500],  # Limit to 500 chars
-                'ocr_confidence': {
-                    'full_text': full_confidence,
-                    'numeric': numeric_confidence,
-                    'mean': (full_confidence + numeric_confidence) / 2
-                },
-                'preprocessing': preprocess_info,
-                'processing_time_ms': processing_time,
-                'extraction_details': {
-                    'aadhaar_extracted': aadhaar_number is not None,
-                    'checksum_validated': aadhaar_valid,
-                    'name_extracted': name is not None,
-                    'dob_extracted': dob is not None,
-                    'gender_extracted': gender is not None,
-                }
-            }
-            
-            logger.info(f"Extraction completed in {processing_time:.1f}ms | "
-                       f"Aadhaar: {'✓' if aadhaar_valid else '✗'} | "
-                       f"Fields: {sum(result['extraction_details'].values())}/5")
+            result['processing_time_ms'] = processing_time
             
             return result
             
@@ -178,22 +85,87 @@ class AadhaarOCRExtractor:
                 'aadhaar_number': None,
                 'aadhaar_valid': False
             }
+
+    def _extract_with_rotation_fallback(
+        self, 
+        image: np.ndarray, 
+        preprocess: bool
+    ) -> Dict[str, Any]:
+        
+        best_result = None
+        
+        # Try rotations: 0, 90, 180, 270
+        for angle in [0, 90, 180, 270]:
+            if angle == 0:
+                rotated = image
+            else:
+                # Rotate clockwise
+                if angle == 90:
+                    rotated = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+                elif angle == 180:
+                    rotated = cv2.rotate(image, cv2.ROTATE_180)
+                elif angle == 270:
+                    rotated = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            
+            # Preprocess rotated image if requested
+            if preprocess:
+                processed_image, preprocess_info = self.preprocessor.preprocess_for_aadhaar_ocr(
+                    rotated, 
+                    enhance_numbers=True
+                )
+            else:
+                processed_image = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY) if len(rotated.shape) == 3 else rotated
+                preprocess_info = {'steps_applied': []}
+            
+            # Extract text
+            full_text, full_confidence = self._extract_text_with_confidence(processed_image)
+            numeric_text, numeric_confidence = self._extract_text_with_confidence(processed_image, extract_numeric_only=True)
+            
+            # Rule-based extraction
+            aadhaar_number = self._extract_aadhaar_number(full_text, numeric_text)
+            aadhaar_valid = validate_aadhaar(aadhaar_number) if aadhaar_number else False
+            
+            # Compiling result for this rotation
+            current_result = {
+                'success': True,
+                'aadhaar_number': format_aadhaar(aadhaar_number) if aadhaar_valid else None,
+                'aadhaar_valid': aadhaar_valid,
+                'aadhaar_masked': mask_aadhaar(aadhaar_number) if aadhaar_number else None,
+                'name': self._extract_name(full_text),
+                'dob': self._extract_dob(full_text),
+                'gender': self._extract_gender(full_text),
+                'address': self._extract_address(full_text),
+                'guardian': self._extract_guardian(full_text),
+                'full_text': full_text[:1000],
+                'ocr_confidence': {
+                    'full_text': full_confidence,
+                    'numeric': numeric_confidence,
+                    'mean': (full_confidence + numeric_confidence) / 2
+                },
+                'rotation_angle': angle,
+                'extraction_details': {
+                    'aadhaar_extracted': aadhaar_number is not None,
+                    'checksum_validated': aadhaar_valid
+                }
+            }
+            
+            # If we found a valid Aadhaar, return immediately
+            if aadhaar_valid:
+                logger.info(f"Valid Aadhaar found at {angle} degrees rotation")
+                return current_result
+                
+            # Keep the result with highest confidence/most fields as backup
+            if best_result is None or current_result['ocr_confidence']['mean'] > best_result['ocr_confidence']['mean']:
+                best_result = current_result
+                
+        return best_result
     
     def _extract_text_with_confidence(
         self, 
         image: np.ndarray, 
         extract_numeric_only: bool = False
     ) -> Tuple[str, float]:
-        """
-        Extract text using EasyOCR with confidence calculation
         
-        Args:
-            image: Preprocessed grayscale/binary image
-            extract_numeric_only: If True, only return numeric characters
-            
-        Returns:
-            Tuple of (extracted_text, mean_confidence)
-        """
         try:
             reader = get_easyocr_reader()
             
@@ -232,48 +204,52 @@ class AadhaarOCRExtractor:
             logger.warning(f"EasyOCR extraction failed: {e}")
             return "", 0.0
     
+    def _normalize_aadhaar_chars(self, text: str) -> str:
+        
+        replacements = {
+            'O': '0', 'o': '0',
+            'I': '1', 'i': '1', 'l': '1', '|': '1',
+            'S': '5', 's': '5',
+            'B': '8', 'b': '8',
+            'Z': '2', 'z': '2',
+            'G': '6', 'g': '6',
+            'T': '7', 't': '7'
+        }
+        for char, digit in replacements.items():
+            text = text.replace(char, digit)
+        return text
+
     def _extract_aadhaar_number(
         self, 
         full_text: str, 
         numeric_text: str
     ) -> Optional[str]:
-        """
-        Extract Aadhaar number using regex patterns and validation
         
-        Args:
-            full_text: Full OCR text
-            numeric_text: Numeric-only OCR text
-            
-        Returns:
-            Aadhaar number if found and valid, None otherwise
-        """
         try:
-            # Try patterns on both text sources
-            text_sources = [full_text, numeric_text]
+            # Try raw texts first, then corrected versions
+            text_sources = [
+                full_text, 
+                numeric_text,
+                self._normalize_aadhaar_chars(full_text)
+            ]
             
             for text in text_sources:
+                # Pre-clean text: handle "VID"
+                clean_text = re.sub(r'VID[:\s]*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}', ' [VID_MASKED] ', text, flags=re.IGNORECASE)
+                
                 for pattern in self.AADHAAR_PATTERNS:
-                    matches = re.finditer(pattern, text)
-                    
+                    matches = re.finditer(pattern, clean_text)
                     for match in matches:
-                        # Extract and normalize the number
                         if len(match.groups()) == 3:
-                            # Pattern with groups (e.g., "1234 5678 9012")
                             number = ''.join(match.groups())
                         else:
-                            # Pattern without groups (e.g., "123456789012")
                             number = match.group(0).replace(' ', '').replace('-', '')
                         
-                        # Validate format
                         if len(number) == 12 and number.isdigit():
-                            # Check Verhoeff checksum
                             if validate_aadhaar(number):
-                                logger.debug(f"Valid Aadhaar found: {number[:4]}********")
+                                logger.info(f"Valid Aadhaar found in OCR: {number[:4]}********")
                                 return number
-                            else:
-                                logger.debug(f"Invalid checksum for: {number[:4]}********")
             
-            logger.warning("No valid Aadhaar number found in OCR text")
             return None
             
         except Exception as e:
@@ -281,15 +257,7 @@ class AadhaarOCRExtractor:
             return None
     
     def _extract_dob(self, text: str) -> Optional[str]:
-        """
-        Extract date of birth from text
         
-        Args:
-            text: OCR text
-            
-        Returns:
-            DOB string if found, None otherwise
-        """
         try:
             for pattern in self.DOB_PATTERNS:
                 match = re.search(pattern, text, re.IGNORECASE)
@@ -305,15 +273,7 @@ class AadhaarOCRExtractor:
             return None
     
     def _extract_gender(self, text: str) -> Optional[str]:
-        """
-        Extract gender from text
         
-        Args:
-            text: OCR text
-            
-        Returns:
-            Gender string ('MALE' or 'FEMALE') if found, None otherwise
-        """
         try:
             for pattern in self.GENDER_PATTERNS:
                 match = re.search(pattern, text, re.IGNORECASE)
@@ -336,46 +296,32 @@ class AadhaarOCRExtractor:
             return None
     
     def _extract_name(self, text: str) -> Optional[str]:
-        """
-        Extract name from text using heuristics
         
-        Args:
-            text: OCR text
-            
-        Returns:
-            Name string if found, None otherwise
-        """
         try:
-            lines = text.split('\n')
+            # Clean text by removing noise characters
+            lines = [l.strip() for l in text.split('\n') if l.strip()]
             
-            # Name is typically:
-            # 1. In the first few lines
-            # 2. Longer than 3 characters
-            # 3. Mostly alphabetic
-            # 4. Not DOB/Gender/Aadhaar number
+            # Heuristic 1: Look for strings like "Father:" or "Care of" to identify surrounding context
+            # Names are usually above DOB and Gender on the front side
             
-            for i, line in enumerate(lines[:10]):  # Check first 10 lines
-                line = line.strip()
-                
-                # Skip short lines
-                if len(line) < 3:
+            for i, line in enumerate(lines[:12]):
+                # Skip lines that are purely government labels
+                low_line = line.lower()
+                if any(x in low_line for x in ['government', 'india', 'भारत', 'सरकार', 'unique identification']):
                     continue
                 
-                # Skip if contains too many digits
-                digit_ratio = sum(c.isdigit() for c in line) / len(line)
-                if digit_ratio > 0.3:
+                # Aadhaar names are usually ALL CAPS in English
+                # and are not labels like "DOB", "Male", etc.
+                if len(line) < 3 or any(d.isdigit() for d in line):
                     continue
                 
-                # Skip common labels
                 skip_keywords = ['dob', 'male', 'female', 'india', 'government', 
-                               'uidai', 'aadhaar', 'address', 'year', 'birth']
-                if any(keyword in line.lower() for keyword in skip_keywords):
+                               'uidai', 'aadhaar', 'address', 'year', 'birth', 'पिता', 'पति']
+                if any(k in low_line for k in skip_keywords):
                     continue
                 
-                # Check if mostly alphabetic
-                alpha_ratio = sum(c.isalpha() or c.isspace() for c in line) / len(line)
-                if alpha_ratio > 0.7:
-                    logger.debug(f"Name extracted: {line}")
+                # Check if it's mostly uppercase or title case
+                if line.isupper() or (line.istitle() and len(line.split()) >= 2):
                     return line
             
             return None
@@ -383,20 +329,48 @@ class AadhaarOCRExtractor:
         except Exception as e:
             logger.warning(f"Name extraction error: {e}")
             return None
+
+    def _extract_address(self, text: str) -> Optional[str]:
+        
+        try:
+            # Look for markers like "Address:", "पता:", "C/O", "S/O"
+            # Address usually starts after these and continues for several lines
+            markers = [r'Address[:\s]*(.*)', r'पता[:\s]*(.*)', r'S/O[:\s]*(.*)', r'D/O[:\s]*(.*)', r'W/O[:\s]*(.*)', r'C/O[:\s]*(.*)']
+            
+            for marker in markers:
+                match = re.search(marker, text, re.IGNORECASE | re.DOTALL)
+                if match:
+                    addr = match.group(1).strip()
+                    # Clean up: stop at big gaps or common footer keywords
+                    footer_keywords = ['1947', 'help@uidai', 'www.uidai']
+                    for k in footer_keywords:
+                        if k in addr.lower():
+                            addr = addr[:addr.lower().find(k)].strip()
+                    return addr if len(addr) > 5 else None
+            return None
+        except Exception:
+            return None
+
+    def _extract_guardian(self, text: str) -> Optional[str]:
+        
+        try:
+            patterns = [
+                r'(?:Father|पिता|Husband|पति)[:\s]*([^,\n\r]+)',
+                r'[S|D|W|C]/O[:\s]*([^,\n\r]+)'
+            ]
+            for p in patterns:
+                match = re.search(p, text, re.IGNORECASE)
+                if match:
+                    return match.group(1).strip()
+            return None
+        except Exception:
+            return None
     
     def extract_aadhaar_number_only(
         self, 
         image: np.ndarray
     ) -> Dict[str, Any]:
-        """
-        Fast extraction of only Aadhaar number (for quick validation)
         
-        Args:
-            image: Input image
-            
-        Returns:
-            Dictionary with aadhaar_number and validity
-        """
         try:
             # Quick preprocessing
             processed, _ = self.preprocessor.preprocess_for_aadhaar_ocr(image, enhance_numbers=True)

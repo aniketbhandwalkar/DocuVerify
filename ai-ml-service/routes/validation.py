@@ -13,9 +13,7 @@ async def validate_document_format(
     file: UploadFile = File(...),
     document_type: str = Form(...)
 ):
-    """
-    Validate document format and structure
-    """
+    
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
@@ -45,9 +43,7 @@ async def validate_document_format(
         raise HTTPException(status_code=500, detail=f"Format validation failed: {str(e)}")
 
 def perform_format_validation(image, document_type):
-    """
-    Perform comprehensive format validation
-    """
+    
     validation_result = {
         "is_valid": False,
         "score": 0.0,
@@ -115,9 +111,7 @@ def perform_format_validation(image, document_type):
     return validation_result
 
 def get_document_specifications(document_type):
-    """
-    Get specifications for different document types
-    """
+    
     specifications = {
         "passport": {
             "aspect_ratio_range": (1.3, 1.5),
@@ -158,9 +152,7 @@ def get_document_specifications(document_type):
     })
 
 def validate_dimensions(width, height, specs):
-    """
-    Validate image dimensions
-    """
+    
     try:
         min_w, min_h = specs.get("min_dimensions", (400, 600))
         rec_w, rec_h = specs.get("recommended_dimensions", (800, 1200))
@@ -180,9 +172,7 @@ def validate_dimensions(width, height, specs):
         return 0.0
 
 def validate_aspect_ratio(aspect_ratio, specs):
-    """
-    Validate aspect ratio
-    """
+    
     try:
         ar_min, ar_max = specs.get("aspect_ratio_range", (1.0, 2.0))
         
@@ -199,9 +189,7 @@ def validate_aspect_ratio(aspect_ratio, specs):
         return 0.0
 
 def validate_image_quality(image):
-    """
-    Validate image quality parameters
-    """
+    
     try:
         # Convert to grayscale for quality assessment
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -228,9 +216,7 @@ def validate_image_quality(image):
         return 0.0
 
 def validate_document_structure(image, document_type):
-    """
-    Validate document structure and layout
-    """
+    
     try:
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -269,9 +255,7 @@ def validate_document_structure(image, document_type):
         return 0.0
 
 def detect_text_regions(gray_image):
-    """
-    Detect text regions in the image
-    """
+    
     try:
         # Apply threshold
         _, binary = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -295,9 +279,7 @@ def detect_text_regions(gray_image):
         return 0
 
 def detect_photo_regions(gray_image):
-    """
-    Detect photo regions in the image
-    """
+    
     try:
         # Look for rectangular regions with specific properties
         edges = cv2.Canny(gray_image, 50, 150)
@@ -319,9 +301,7 @@ def detect_photo_regions(gray_image):
         return 0
 
 def generate_recommendations(validation_details, specs):
-    """
-    Generate recommendations based on validation results
-    """
+    
     recommendations = []
     
     try:

@@ -1,12 +1,4 @@
-"""
-Suspicious Image Detector for Aadhaar Verification
 
-Detects images that are likely fake based on:
-- Deity images (blue skin, multiple elements, gold ornaments)
-- Non-photorealistic textures (drawings, paintings, cartoons)
-- Unusual skin colors
-- Stock photo characteristics
-"""
 
 import cv2
 import numpy as np
@@ -17,10 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class SuspiciousImageDetector:
-    """
-    Detects suspicious characteristics in Aadhaar card photos
-    that indicate fake documents.
-    """
+    
     
     # Color ranges for deity detection (HSV format)
     # Blue skin (Krishna, Vishnu, etc.)
@@ -41,15 +30,7 @@ class SuspiciousImageDetector:
         )
     
     def analyze_image(self, image: np.ndarray) -> Dict[str, Any]:
-        """
-        Analyze image for suspicious characteristics.
         
-        Args:
-            image: OpenCV image (BGR format)
-            
-        Returns:
-            Dictionary with analysis results
-        """
         result = {
             'is_suspicious': False,
             'suspicion_score': 0,
@@ -119,7 +100,7 @@ class SuspiciousImageDetector:
         return result
     
     def _check_blue_skin(self, hsv: np.ndarray, bgr: np.ndarray) -> Dict[str, Any]:
-        """Check for blue skin tones (common in deity images)."""
+        
         try:
             # Create mask for blue color in skin region
             blue_mask = cv2.inRange(hsv, self.BLUE_SKIN_LOWER, self.BLUE_SKIN_UPPER)
@@ -141,7 +122,7 @@ class SuspiciousImageDetector:
             return {'detected': False, 'error': str(e)}
     
     def _check_gold_ornaments(self, hsv: np.ndarray) -> Dict[str, Any]:
-        """Check for excessive gold colors (deity ornaments)."""
+        
         try:
             gold_mask = cv2.inRange(hsv, self.GOLD_LOWER, self.GOLD_UPPER)
             
@@ -161,10 +142,7 @@ class SuspiciousImageDetector:
             return {'detected': False, 'error': str(e)}
     
     def _check_texture_reality(self, image: np.ndarray) -> Dict[str, Any]:
-        """
-        Check if image has photorealistic texture or appears painted/illustrated.
-        Uses edge density and gradient analysis.
-        """
+        
         try:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
@@ -195,7 +173,7 @@ class SuspiciousImageDetector:
             return {'is_painting': False, 'error': str(e)}
     
     def _check_multiple_faces(self, image: np.ndarray) -> Dict[str, Any]:
-        """Detect number of faces in the image."""
+        
         try:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
@@ -216,7 +194,7 @@ class SuspiciousImageDetector:
             return {'count': 0, 'error': str(e)}
     
     def _check_saturation(self, hsv: np.ndarray) -> Dict[str, Any]:
-        """Check for unnatural color saturation."""
+        
         try:
             # Extract saturation channel
             saturation = hsv[:, :, 1]
@@ -236,9 +214,7 @@ class SuspiciousImageDetector:
             return {'is_oversaturated': False, 'error': str(e)}
     
     def _check_cartoon_style(self, image: np.ndarray) -> Dict[str, Any]:
-        """
-        Detect cartoon/animated style images using edge and color analysis.
-        """
+        
         try:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
@@ -273,10 +249,7 @@ class SuspiciousImageDetector:
             return {'is_cartoon': False, 'error': str(e)}
     
     def extract_photo_region(self, image: np.ndarray) -> Optional[np.ndarray]:
-        """
-        Extract the photo region from an Aadhaar card image.
-        The photo is typically on the left side of the card.
-        """
+        
         try:
             h, w = image.shape[:2]
             

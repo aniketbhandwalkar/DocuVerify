@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     port = int(os.getenv('PORT', 8000))
     try:
-        uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
+        uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
     except OSError:
         free_port = find_free_port(port + 1)
-        uvicorn.run("app:app", host="0.0.0.0", port=free_port, reload=True)
+        uvicorn.run("app:app", host="0.0.0.0", port=free_port, reload=False)

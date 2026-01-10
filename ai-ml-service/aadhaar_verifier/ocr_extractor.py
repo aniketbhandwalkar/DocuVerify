@@ -27,16 +27,6 @@ except ImportError:
 
 
 class OCRExtractor:
-    """
-    Aadhaar OCR extraction using optimized AadhaarOCRExtractor.
-    
-    Uses EasyOCR for high accuracy (~90-98%):
-    - Advanced preprocessing
-    - Verhoeff checksum validation
-    - Rule-based extraction
-    - EasyOCR deep learning-based text recognition
-    """
-    
     def __init__(self):
         if NEW_EXTRACTOR_AVAILABLE:
             self.extractor = AadhaarOCRExtractor()
@@ -45,16 +35,8 @@ class OCRExtractor:
             self.extractor = None
             logger.error("AadhaarOCRExtractor not available. Please check installation.")
     
-    def extract(self, image: np.ndarray) -> OCRExtractedData:
-        """
-        Extract text from Aadhaar card image and parse demographic data.
+    def extract(self, image: np.ndarray) -> OCRExtractedData:           
         
-        Args:
-            image: Preprocessed image (numpy array)
-            
-        Returns:
-            OCRExtractedData with extracted and parsed information
-        """
         if self.extractor:
             # Use new optimized pipeline
             return self._extract_with_new_pipeline(image)
@@ -68,11 +50,6 @@ class OCRExtractor:
             )
     
     def _extract_with_new_pipeline(self, image: np.ndarray) -> OCRExtractedData:
-        """
-        Extract using new optimized AadhaarOCRExtractor.
-        
-        Returns OCRExtractedData mapped from new extractor results.
-        """
         try:
             # Run new extraction pipeline
             result = self.extractor.extract_aadhaar_data(image, preprocess=True)
@@ -82,8 +59,7 @@ class OCRExtractor:
                     extraction_notes=[f"Extraction failed: {result.get('error', 'Unknown')}"]
                 )
             
-            # Map new format to legacy OCRExtractedData model
-            extraction_notes = []
+                extraction_notes = []
             extraction_notes.append("New optimized OCR pipeline")
             
             if result.get('aadhaar_valid'):
@@ -93,7 +69,6 @@ class OCRExtractor:
                 steps = result['preprocessing']['steps_applied']
                 extraction_notes.append(f"Preprocessing: {len(steps)} steps applied")
             
-            # Build extraction notes
             details = result.get('extraction_details', {})
             fields_extracted =sum(details.values()) if details else 0
             extraction_notes.append(f"Extracted {fields_extracted}/5 fields")
@@ -102,14 +77,13 @@ class OCRExtractor:
                 raw_text=result.get('full_text', ''),
                 name=result.get('name'),
                 dob=result.get('dob'),
-                yob=None,  # New extractor includes this in dob
+                yob=None,   
                 gender=result.get('gender'),
                 masked_aadhaar=result.get('aadhaar_masked'),
-                address=None,  # Not extracted in new pipeline
-                vid=None,  # Not yet implemented
+                address=result.get('address'),
+                vid=result.get('guardian'),  
                 ocr_confidence=result.get('ocr_confidence', {}).get('mean', 0.0),
                 extraction_notes=extraction_notes,
-                # Store full result for new confidence scoring
                 _full_result=result
             )
             
@@ -122,5 +96,5 @@ class OCRExtractor:
 
 
 
-# Singleton instance
+
 ocr_extractor = OCRExtractor()

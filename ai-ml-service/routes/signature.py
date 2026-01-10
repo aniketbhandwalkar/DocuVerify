@@ -10,9 +10,7 @@ router = APIRouter()
 
 @router.post("/detect-signature")
 async def detect_signature_in_document(file: UploadFile = File(...)):
-    """
-    Detect signatures in uploaded document
-    """
+    
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
@@ -41,9 +39,7 @@ async def detect_signature_in_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Signature detection failed: {str(e)}")
 
 def find_signatures(image):
-    """
-    Find signature regions in the document
-    """
+    
     try:
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -122,9 +118,7 @@ def find_signatures(image):
         }
 
 def calculate_signature_confidence(aspect_ratio, solidity, extent, area):
-    """
-    Calculate confidence score for potential signature region
-    """
+    
     try:
         confidence = 0.0
         
@@ -156,9 +150,7 @@ def calculate_signature_confidence(aspect_ratio, solidity, extent, area):
 
 @router.post("/extract-signature")
 async def extract_signature_from_document(file: UploadFile = File(...)):
-    """
-    Extract signature regions as separate images
-    """
+    
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):

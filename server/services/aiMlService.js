@@ -302,10 +302,10 @@ class AIMlService {
     };
 
     // Set authenticity based on analysis result
-    if (processedResult.isValid && processedResult.confidenceScore >= 0.7) {
+    if (processedResult.isValid && processedResult.confidenceScore >= 0.3) {
       processedResult.authenticity = 'authentic';
       processedResult.verificationStatus = 'verified';
-    } else if (processedResult.confidenceScore >= 0.4) {
+    } else if (processedResult.confidenceScore >= 0.2) {
       processedResult.authenticity = 'suspicious';
       processedResult.verificationStatus = 'requires_review';
     } else {

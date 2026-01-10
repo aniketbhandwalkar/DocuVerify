@@ -1,12 +1,4 @@
-"""
-Offline Aadhaar Card Verification System
 
-A legal, offline verification system using Secure QR code cryptographic verification.
-This is an academic project and does NOT connect to UIDAI databases.
-
-Author: DocumentVerify Project
-License: Academic Use Only
-"""
 
 import logging
 
